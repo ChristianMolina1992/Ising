@@ -1,9 +1,9 @@
 using Printf
 using Plots
 
-const L       = 20             # linear size of lattice
+const L       = 21             # linear size of lattice
 const n_sweep = 20             # number of sweeps between sampling
-const n_therm = 1000           # number of sweeps to thermalize
+const n_therm = 1000          # number of sweeps to thermalize
 const n_data  = 100            # number of data samples per temperature
 const temps   = 4.0:-0.3:0.1   # temperatures to sample
 
@@ -38,6 +38,7 @@ function flip(x, y, T, s) # apply metropolis spin flip algorithm to site (x,y) w
     end
 end
 
+
 function sweep(n, T, s) # apply flip() to every site on the lattice
     for i = 1:n
         for x = 1:L
@@ -47,6 +48,7 @@ function sweep(n, T, s) # apply flip() to every site on the lattice
         end
     end
 end
+
 
 function main()
     e1 = Array(1:n_data)     # array to hold energy measurements (fixed T)
@@ -68,8 +70,9 @@ function main()
         push!(mt,ma_ave/(L*L))
         @printf("%8.3f  %8.3f \n", en_ave/(L*L), ma_ave/(L*L))
     end
-    plot(temps,mt) # plot magnetization vs. temperature
-    plot(temps,et)
+    plot(temps,mt, seriestype = :scatter, tempslims=(1.0,3.0)) # plot magnetization vs. temperature
+    plot(temps,et, seriestype = :scatter, title="E vs T", tempslabel="Temperatura",etlabel="Energía", tempslims=(1.0,3.0))
+
 end
 
 main()
