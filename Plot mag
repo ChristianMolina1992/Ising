@@ -1,10 +1,36 @@
+
+function magnetization_ising2d(s)
+    m, n = size(s)
+    sum(s)/(m*n)
+end
+magnetization_ising2d(s)
+
+
+
+function energy_density_ising2d(s)
+    m, n = size(s)
+    E = 0.0
+    @inbounds begin
+        for j in 1:n, i in 1:m-1
+            E -= s[i,j]*s[i+1,j]
+        end
+        for j in 1:n
+            E -= s[m,j]*s[1,j]
+        end
+        for j in 1:n-1, i in 1:m
+            E -= s[i,j]*s[i,j+1]
+        end
+        for i in 1:m
+            E -= s[i,m]*s[i,1]
+        end
+    end
+    E/(m*n)
+end
+
+
 using Printf
 using Plots
 using Ising2D
-
-s = rand_ising2d(200)
-rng = default_rng()
-ising2d_ifelse!(s, T, niters, rng)
 
 m       = 200   
 n       = 200
@@ -14,8 +40,8 @@ n_therm = 1000           # number of sweeps to thermalize
 n_data  = 100            # number of data samples per temperature
 temps   = 4.0:-0.3:0.1   # temperatures to sample
 
-function sweep(niters, T, s) # apply flip() to every site on the lattice
-    for b = 1:niters
+function sweep(p, T, s) # apply flip() to every site on the lattice
+    for b = 1:p
         for i = 1:m
             for j = 1:n
                 ising2d_ifelse!(s,T,niters, rng=default_rng())
@@ -29,18 +55,17 @@ function grafico()
     mt = []              #Acá van a ir todos los puntos de la magnetización
     s = rand_ising2d(200)
     for T in temps
-        sweep(n_therm, T, s)
-        m1 = magnetization
-        for i in niters
+        sweep(n_therm, T, s)  #termaliza la red
+        m1 = magnetization    
+        for i in niters        #calcula la magnetizacion
             sweep(n_sweep, T, s)
             magnetization_ising2d(s)
         end
-        ma_ave = sum(magnetization_ising2d(s))/niters
+        ma_ave = sum(magnetization_ising2d(s))/niters      #el promedio 
         push!(mt,ma_ave/(m*n))
         @printf("%8.3f  %8.3f \n",ma_ave/(m*n))
     end
     plot(T,mt) # plot magnetization vs. temperature
 end
 
-grafico()
      
