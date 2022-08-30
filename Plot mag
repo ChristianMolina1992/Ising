@@ -1,0 +1,46 @@
+using Printf
+using Plots
+using Ising2D
+
+s = rand_ising2d(200)
+rng = default_rng()
+ising2d_ifelse!(s, T, niters, rng)
+
+m       = 200   
+n       = 200
+niters  = 1000
+n_sweep = 20             # number of sweeps between sampling
+n_therm = 1000           # number of sweeps to thermalize
+n_data  = 100            # number of data samples per temperature
+temps   = 4.0:-0.3:0.1   # temperatures to sample
+
+function sweep(niters, T, s) # apply flip() to every site on the lattice
+    for b = 1:niters
+        for i = 1:m
+            for j = 1:n
+                ising2d_ifelse!(s,T,niters, rng=default_rng())
+            end
+        end
+    end   
+end
+
+function grafico()
+    m1=(1:niters)        #Acá irían todas las magnetizaciones diferentes para un paso
+    mt = []              #Acá van a ir todos los puntos de la magnetización
+    s = rand_ising2d(200)
+    for T in temps
+        sweep(n_therm, T, s)
+        m1 = magnetization
+        for i in niters
+            sweep(n_sweep, T, s)
+            magnetization_ising2d(s)
+        end
+        ma_ave = sum(magnetization_ising2d(s))/niters
+        push!(mt,ma_ave/(m*n))
+        @printf("%8.3f  %8.3f \n",ma_ave/(m*n))
+    end
+    plot(T,mt) # plot magnetization vs. temperature
+end
+
+grafico()
+     
