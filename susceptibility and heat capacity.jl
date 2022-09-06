@@ -104,4 +104,5 @@ function grafico()
 end
 
 
-grafico()
+grafico()  #UndefVarError: ising2d_ifelse! not defined
+
