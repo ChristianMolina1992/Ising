@@ -1,3 +1,16 @@
+using Random: default_rng, seed!
+using RandomNumbers
+using StaticArrays
+using Plots
+using BenchmarkTools
+
+const β_crit = log(1+sqrt(2))/2
+rand_ising2d(m, n=m) = rand(Int8[-1, 1], m, n)
+
+seed!(4649)
+s₀ = rand_ising2d(100);
+
+
 function energy_density_ising2d(s)
     m, n = size(s)
     E = 0.0
@@ -18,7 +31,34 @@ function energy_density_ising2d(s)
     return E/(m*n)
 end
 
+function ising2d_ifelse!(s, β, niters, rng=default_rng())
+    m, n = size(s)
+    prob = @SVector [exp(-2*β*k) for k in -4:4]
+    @fastmath @inbounds @simd for iter in 1:niters
+        for j in 1:n 
+            for i in 1:m
+                let NN = s[ifelse(i == 1, m, i-1), j],  #ifelse(condition::Bool, x, y)Return x if condition is true, otherwise return y
+                    SS = s[ifelse(i == m, 1, i+1), j],
+                    WW = s[i, ifelse(j == 1, n, j-1)],
+                    EE = s[i, ifelse(j == n, 1, j+1)],
+                    CT = s[i, j]
+                    k = CT * (NN + SS + WW + EE)
+                    s[i,j] = ifelse(rand(rng) < prob[k+5], -CT, CT)
+                end
+            end
+        end
+    end
+end
 
+s = copy(s₀)
+rng = default_rng()
+ising2d_ifelse!(s, β_crit, 10, rng)
+
+s = copy(s₀)
+seed!(4649)
+rng = default_rng()
+@time ising2d_ifelse!(s, β_crit, 10^5, rng)
+heatmap(s; size=(200, 200), axis=false, colorbar=false)
 function magnetization_ising2d(s)
     m, n = size(s)
     return sum(s)/(m*n)
@@ -27,16 +67,8 @@ s = rand_ising2d(300)
 magnetization_ising2d(s)    # Acá me tira error in method definition: function Ising2D.energy_density_ising2d must be explicitly imported to be extended
 
 
-function Var_de_m(s)
-    m, n = size(s)
-    return (std(magnetization_ising2d(s))^2)
-end
 
 
-function Var_de_e(s)
-    m, n = size(s)
-    return (std(energy_density_ising2d(s))^2)
-end
 
 using Printf
 using Plots
@@ -54,7 +86,7 @@ function sweep(p, T, s) # apply flip() to every site on the lattice
     for b = 1:p
         for i = 1:m
             for j = 1:n
-                ising2d_ifelse!(s,T,niters, rng=default_rng())
+                ising2d_ifelse!(s,T,niters, default_rng())
             end
         end
     end   
@@ -63,46 +95,37 @@ end
 function grafico()
     m1=(1:niters)        #Acá irían todas las magnetizaciones diferentes para un T fijo
     e1=(1:niters)
-    X1=(1:niters)
-    C1=(1:niters)
-    mt = []              #Acá van a ir todos los puntos de la magnetización, los adjunto
+    mt = []              #Acá van a ir todos los puntos de la magnetización para cada T, los adjunto.
     et = []
-    Xt = []
-    Ct = []
+    x1 = =(1:niters) 
+    xt = []
     s = rand_ising2d(200)
     for T in temps
-        sweep(n_therm, T, s)  #termaliza la red
-        m = Float[64]
-        e = Float[64]
-        X = Float[64]
-        C = Float[64]
-        push!(m1,magnetization_ising2d(s))
-        push!(e1,energy_density_ising2d(s))
-        push!(X1,Var_de_m(s))
-        push!(C1,heat_capacity(e))        
+        sweep(n_therm, T, s)  #termaliza la red (loop sobre las temperaturas)
+        m1 = Float[64]
+        e1 = Float[64]
+        #push!(e1,energy_density_ising2d(s))
+        x1 =Float[64]
         
         for i in niters       #calcula la magnetizacion
             sweep(n_sweep, T, s)
             magnetization_ising2d(s)
             energy_density_ising2d(s)
-            Var_de_m(s)
-            Var_de_e(s)
+            susceptibility = Var(mt)/temps*k
+            
+            push!(mt,magnetization_ising2d(s))
+            push!(et, energy_density_ising2d(s))
+        
         end
-        ma_ave = sum(m) 
-        en_ave = sum(e)
-        susceptibility = std(m)^2/temps
-        heat_capacity = std(e)^2/temps
-        push!(mt,ma_ave)
-        push!(et,en_ave)
-        @printf("%8.3f  %8.3f \n",ma_ave,en_ave,susceptibility,heat_capacity)
+        ma_ave = sum(m1)
+        en_ave = sum(e1)
+        #push!(mt,ma_ave)
+        #push!(et,en_ave)
+        @printf("%8.3f  %8.3f \n",ma_ave)
       
     end
     plots(temps,ma_ave) # plot magnetization vs. temperature
-    plots(temps,ea_ave) # plot energy vs. temperature
-    plots(temps,susceptibility)  #  susceptibility vs temperature
-    plots(temps,heat_capacity)   # heat_capacity vs temperature
 end
 
-
-grafico()  #UndefVarError: ising2d_ifelse! not defined
+grafico()
 
