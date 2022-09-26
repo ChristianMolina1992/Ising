@@ -92,40 +92,34 @@ function sweep(p, T, s) # apply flip() to every site on the lattice
     end   
 end
 
-function grafico()
-    m1=(1:niters)        #Acá irían todas las magnetizaciones diferentes para un T fijo
-    e1=(1:niters)
-    mt = []              #Acá van a ir todos los puntos de la magnetización para cada T, los adjunto.
-    et = []
-    x1 = =(1:niters) 
-    xt = []
-    s = rand_ising2d(200)
+
+
+
+function grafico(temps)
+    mt = Float64[] #Acá van a ir todos los puntos de la magnetización para cada T, los adjunto.
+    et = Float64[]
+    xt = Float64[]
+    s = rand_ising2d(10)  # T=oo
     for T in temps
         sweep(n_therm, T, s)  #termaliza la red (loop sobre las temperaturas)
-        m1 = Float[64]
-        e1 = Float[64]
-        #push!(e1,energy_density_ising2d(s))
-        x1 =Float[64]
-        
+
+        m1 = Float64[]          #Acá irían todas las magnetizaciones diferentes para un T fijo
+        e1 = Float64[]
+        x1 = Float64[]
         for i in niters       #calcula la magnetizacion
             sweep(n_sweep, T, s)
-            magnetization_ising2d(s)
-            energy_density_ising2d(s)
-            susceptibility = Var(mt)/temps*k
-            
-            push!(mt,magnetization_ising2d(s))
-            push!(et, energy_density_ising2d(s))
-        
+            push!(m1,magnetization_ising2d(s))
+            push!(e1,energy_density_ising2d(s))
         end
-        ma_ave = sum(m1)
-        en_ave = sum(e1)
-        #push!(mt,ma_ave)
-        #push!(et,en_ave)
-        @printf("%8.3f  %8.3f \n",ma_ave)
+        ma_ave = sum(m1)  # Statistics.mean(m1)
+        en_ave = sum(e1)  # Statistics.mean(e1)
+        #susceptibility = Statistics.var(mt)/T
+        push!(mt,ma_ave)
+        push!(et,en_ave)
+        # push!(x1,suscept)
+        #println(ma_ave)
       
     end
-    plots(temps,ma_ave) # plot magnetization vs. temperature
+    #plots(temps,ma_ave) # plot magnetization vs. temperature
+    return temps,mt,et #susceptibility
 end
-
-grafico()
-
