@@ -73,6 +73,7 @@ magnetization_ising2d(s)    # Acá me tira error in method definition: function 
 using Printf
 using Plots
 using Ising2D
+using Statistics 
 
 m       = 200   
 n       = 200
@@ -95,7 +96,7 @@ end
 
 
 
-function grafico(temps)
+function grafico(temps,s)
     mt = Float64[] #Acá van a ir todos los puntos de la magnetización para cada T, los adjunto.
     et = Float64[]
     xt = Float64[]
@@ -104,22 +105,22 @@ function grafico(temps)
         sweep(n_therm, T, s)  #termaliza la red (loop sobre las temperaturas)
 
         m1 = Float64[]          #Acá irían todas las magnetizaciones diferentes para un T fijo
-        e1 = Float64[]
-        x1 = Float64[]
+        e1 = Float64[]          #Acá irían todas las energías diferentes para un T fijo  
+        x1 = Float64[]          #Acá irían todas las susceptibilidades diferentes para un T fijo  
         for i in niters       #calcula la magnetizacion
             sweep(n_sweep, T, s)
             push!(m1,magnetization_ising2d(s))
             push!(e1,energy_density_ising2d(s))
         end
-        ma_ave = sum(m1)  # Statistics.mean(m1)
-        en_ave = sum(e1)  # Statistics.mean(e1)
-        #susceptibility = Statistics.var(mt)/T
+        ma_ave = Statistics.mean(m1)  # Statistics.mean(m1)
+        en_ave = Statistics.mean(e1)  # Statistics.mean(e1)
+        susceptibility = Statistics.var(mt)/T
         push!(mt,ma_ave)
         push!(et,en_ave)
-        # push!(x1,suscept)
-        #println(ma_ave)
-      
+        push!(x1,susceptibility)
+            
     end
-    #plots(temps,ma_ave) # plot magnetization vs. temperature
-    return temps,mt,et #susceptibility
+    plot(temps,mt) # plot magnetization vs. temperature
+    return temps,mt,et,xt 
 end
+
