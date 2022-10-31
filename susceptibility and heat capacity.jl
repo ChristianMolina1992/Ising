@@ -96,19 +96,29 @@ end
 
 
 
-function grafico(temps,s)
+using Printf
+using Plots
+using Ising2D
+using Statistics 
+
+
+n_sweep = 100             # number of sweeps between sampling
+n_therm = 1000           # number of sweeps to thermalize
+n_data  = 100            # number of data samples per temperature
+temps   = 4.0:-0.3:0.1   # temperatures to sample
+
+function grafico()
     mt = Float64[] #Acá van a ir todos los puntos de la magnetización para cada T, los adjunto.
     et = Float64[]
     xt = Float64[]
-    s = rand_ising2d(10)  # T=oo
-    for T in temps
-        sweep(n_therm, T, s)  #termaliza la red (loop sobre las temperaturas)
-
-        m1 = Float64[]          #Acá irían todas las magnetizaciones diferentes para un T fijo
-        e1 = Float64[]          #Acá irían todas las energías diferentes para un T fijo  
-        x1 = Float64[]          #Acá irían todas las susceptibilidades diferentes para un T fijo  
-        for i in niters       #calcula la magnetizacion
-            sweep(n_sweep, T, s)
+    s = rand_ising2d(100) 
+    for T in temps      
+        ising2d_ifelse!(s,1/T,n_therm)
+        m1=Float64[]
+        e1=Float64[]
+        x1 = Float64[]
+        for i=1:n_data
+            ising2d_ifelse!(s,1/T,n_sweep)
             push!(m1,magnetization_ising2d(s))
             push!(e1,energy_density_ising2d(s))
         end
@@ -117,10 +127,11 @@ function grafico(temps,s)
         susceptibility = Statistics.var(mt)/T
         push!(mt,ma_ave)
         push!(et,en_ave)
-        push!(x1,susceptibility)
-            
+        push!(xt,susceptibility)
     end
-    plot(temps,mt) # plot magnetization vs. temperature
-    return temps,mt,et,xt 
+    
+    
+    return collect(temps),mt,et,xt
+    
 end
 
