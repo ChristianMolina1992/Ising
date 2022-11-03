@@ -107,31 +107,57 @@ n_therm = 1000           # number of sweeps to thermalize
 n_data  = 100            # number of data samples per temperature
 temps   = 4.0:-0.3:0.1   # temperatures to sample
 
+using Printf
+using Plots
+using Ising2D
+using Statistics 
+
+
+n_sweep = 100             # number of sweeps between sampling
+n_therm = 1000           # number of sweeps to thermalize
+n_data  = 100            # number of data samples per temperature
+temps   = 4.0:-0.3:0.1   # temperatures to sample
+
 function grafico()
     mt = Float64[] #Acá van a ir todos los puntos de la magnetización para cada T, los adjunto.
     et = Float64[]
     xt = Float64[]
+    ct = Float64[]
     s = rand_ising2d(100) 
-    for T in temps      
+    for T in temps      #loop en la temperatura, termaliza
         ising2d_ifelse!(s,1/T,n_therm)
         m1=Float64[]
         e1=Float64[]
-        x1 = Float64[]
-        for i=1:n_data
+        
+        for i=1:n_sweep
             ising2d_ifelse!(s,1/T,n_sweep)
             push!(m1,magnetization_ising2d(s))
             push!(e1,energy_density_ising2d(s))
+                              
         end
         ma_ave = Statistics.mean(m1)  # Statistics.mean(m1)
         en_ave = Statistics.mean(e1)  # Statistics.mean(e1)
-        susceptibility = Statistics.var(mt)/T
+        susceptibility = Statistics.var(m1)/T
+        heat_capacity = Statistics.var(e1)/T^2
+                
         push!(mt,ma_ave)
         push!(et,en_ave)
         push!(xt,susceptibility)
+        push!(ct,heat_capacity)
+        
     end
-    
-    
-    return collect(temps),mt,et,xt
+     
+    return collect(temps),xt
     
 end
+    
 
+x=[4.0, 3.7, 3.4, 3.1, 2.8, 2.5, 2.2, 1.9, 1.6, 1.3, 1.0, 0.7, 0.4, 0.1]    #(m vs T)
+y=[0.0026759999999999996, 0.00313, 0.002428, -0.0027800000000000004, -0.0038280000000000002, -0.006083999999999999, -0.78014, -0.9387600000000001, -0.9793999999999999, -0.994926, -0.9992779999999999, -0.9999819999999999, -1.0, -1.0]
+plot(x, y, xlabel = "T" , ylabel = "Magnetization", seriestype = :scatter)
+
+    
+x=[4.0, 3.7, 3.4, 3.1, 2.8, 2.5, 2.2, 1.9, 1.6, 1.3, 1.0, 0.7, 0.4, 0.1]
+y=[-0.5606319999999999, -0.6152639999999999, -0.6871439999999999, -0.7797919999999999, -0.9076639999999999, -1.108528, -1.5427079999999997, -1.8119079999999999, -1.9269800000000001, -1.9802840000000002, -1.997084, -1.9999440000000002, -2.0, -2.0]
+plot(x, y, xlabel = "T", ylabel = "Energy", seriestype = :scatter)
+    
