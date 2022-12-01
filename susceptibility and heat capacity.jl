@@ -145,3 +145,28 @@ plot(x, y, xlabel = "T", ylabel = "Energy", seriestype = :scatter)
 
 
 
+#PAra el cálculo de las correlacione
+using BioStatPhys 
+
+
+n_sweep = 1000          # number of sweeps between sampling
+
+L = 100
+T= 3.0
+
+@time function corr_tem()
+    s = rand_ising2d(L) 
+    #ising2d_ifelse!(s,1/T,n_therm)
+    m1=Float64[] 
+        for i=1:n_sweep
+            ising2d_ifelse!(s,1/T,n_sweep)
+            push!(m1,magnetization_ising2d(s))
+                                        
+        end
+    time=Float64[]
+for i in 1:500
+    push!(time,i)
+    end
+    return plot(time,time_correlation(m1),xlabel = "Tiempo", ylabel = "C(t)",label="L=100, T = 3.0")   
+end
+
