@@ -170,3 +170,34 @@ for i in 1:500
     return plot(time,time_correlation(m1),xlabel = "Tiempo", ylabel = "C(t)",label="L=100, T = 3.0")   
 end
 
+
+
+
+##### Esto es lo correcto
+
+s = rand_ising2d(L) 
+writedlm("config.txt", s)
+
+
+using BioStatPhys 
+n_sweep=1000
+n_therm=1000
+temps   =2.90:-0.05:2.00
+@time function correlacion_temporal(T,L)
+    readdlm("config.txt", '\t') 
+    for T in temps      #loop en la temperatura, termaliza
+        ising2d_ifelse!(s,1/T,n_therm)
+        m1=Float64[]
+    for i=1:n_sweep
+        ising2d_ifelse!(s,1/T,1)
+        push!(m1,magnetization_ising2d(s))
+                                        
+    end
+time=Float64[]
+for i in 1:500
+    push!(time,i)
+    end
+    return plot(time,time_correlation(m1),xlabel = "Tiempo", ylabel = "C(t)",label="L=50, T = 2.24")   
+end
+end
+
