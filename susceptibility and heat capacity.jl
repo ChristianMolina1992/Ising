@@ -6,9 +6,10 @@ using BenchmarkTools
 
 const β_crit = log(1+sqrt(2))/2
 rand_ising2d(m, n=m) = rand(Int8[-1, 1], m, n)
+Lsize=100
 
 seed!(4649)
-s₀ = rand_ising2d(100);
+s₀ = rand_ising2d(Lsize);
 
 
 function energy_density_ising2d(s)
@@ -170,7 +171,7 @@ function grafico()
         ising2d_ifelse!(s,1/T,n_therm)
         m1=Float64[]
         e1=Float64[]
-        writedlm("config.txt")
+        writedlm("config_$(Lsize)_$(T).txt")
         for i=1:n_sweep
             ising2d_ifelse!(s,1/T,n_sweep)
             push!(m1,magnetization_ising2d(s))
@@ -200,7 +201,7 @@ end
 using BioStatPhys
 n_sweep = 10000
 @time function correlacion_temporal(T,L)
-    spin = readdlm("config.txt", '\t')
+    spin = readdlm("config_$(L)_$(T).txt", '\t')
     m1=Float64[]
     for i=1:n_sweep
         ising2d_ifelse!(spin,1/T,1)
