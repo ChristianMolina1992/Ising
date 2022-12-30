@@ -145,59 +145,71 @@ plot(x, y, xlabel = "T", ylabel = "Energy", seriestype = :scatter)
 
 
 
-#PAra el cálculo de las correlacione
-using BioStatPhys 
+####CORRELACION
 
 
-n_sweep = 1000          # number of sweeps between sampling
-
-L = 100
-T= 3.0
-
-@time function corr_tem()
-    s = rand_ising2d(L) 
-    #ising2d_ifelse!(s,1/T,n_therm)
-    m1=Float64[] 
-        for i=1:n_sweep
-            ising2d_ifelse!(s,1/T,n_sweep)
-            push!(m1,magnetization_ising2d(s))
-                                        
-        end
-    time=Float64[]
-for i in 1:500
-    push!(time,i)
-    end
-    return plot(time,time_correlation(m1),xlabel = "Tiempo", ylabel = "C(t)",label="L=100, T = 3.0")   
-end
+using Printf
+using Plots
+using Ising2D
+using Statistics 
+using DelimitedFiles
 
 
+n_sweep = 100            # number of sweeps between sampling
+n_therm = 1500           # number of sweeps to thermalize
+n_data  = 100            # number of data samples per temperature
+temps   = 2.4:-0.01:2.22   # temperatures to sample
 
-
-##### Esto es lo correcto
-
-s = rand_ising2d(L) 
-writedlm("config.txt", s)
-
-
-using BioStatPhys 
-n_sweep=1000
-n_therm=1000
-temps   =2.90:-0.05:2.00
-@time function correlacion_temporal(T,L)
-    readdlm("config.txt", '\t') 
+function grafico()
+    mt = Float64[] #Acá van a ir todos los puntos de la magnetización para cada T, los adjunto.
+    et = Float64[]
+    xt = Float64[]
+    ct = Float64[]
+    s = rand_ising2d(25) 
     for T in temps      #loop en la temperatura, termaliza
         ising2d_ifelse!(s,1/T,n_therm)
         m1=Float64[]
-    for i=1:n_sweep
-        ising2d_ifelse!(s,1/T,1)
-        push!(m1,magnetization_ising2d(s))
-                                        
+        e1=Float64[]
+        writedlm("config.txt")
+        for i=1:n_sweep
+            ising2d_ifelse!(s,1/T,n_sweep)
+            push!(m1,magnetization_ising2d(s))
+            push!(e1,energy_density_ising2d(s))
+                              
+        end
+        ma_ave = Statistics.mean(m1)  # Statistics.mean(m1)
+        en_ave = Statistics.mean(e1)  # Statistics.mean(e1)
+        susceptibility = Statistics.var(m1)/T
+        heat_capacity = Statistics.var(e1)/T^2
+                
+        push!(mt,ma_ave)
+        push!(et,en_ave)
+        push!(xt,susceptibility)
+        push!(ct,heat_capacity)
+        
     end
-time=Float64[]
-for i in 1:500
-    push!(time,i)
-    end
-    return plot(time,time_correlation(m1),xlabel = "Tiempo", ylabel = "C(t)",label="L=50, T = 2.24")   
-end
+     
+    #return collect(temps),xt
+    return readdlm("config.txt",'\t')
 end
 
+
+
+
+
+using BioStatPhys
+n_sweep = 10000
+@time function correlacion_temporal(T,L)
+    spin = readdlm("config.txt", '\t')
+    m1=Float64[]
+    for i=1:n_sweep
+        ising2d_ifelse!(spin,1/T,1)
+        push!(m1,magnetization_ising2d(s))                                  
+    end
+time=Float64[]
+for i in 1:5000
+    push!(time,i)
+    end
+    #return plot(time,time_correlation(m1),xlims=(10, 1000),xlabel = "Tiempo", ylabel = "C(t)",label="L=200, T = 3.0")
+    return time_correlation(m1)
+end
