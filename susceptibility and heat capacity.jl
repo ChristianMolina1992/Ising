@@ -196,42 +196,32 @@ end
 
 
 
-
-
 using BioStatPhys
 n_sweep = 10000
+# Para usar esto: primero correr graf, luego llamar correlacion_temporal(T,Lsize) con una temperatura dada
 @time function correlacion_temporal(T,L)
-    spin = readdlm("config_$(L)_$(T).txt", '\t')
+    spin = readdlm("config_$(L)_$(T).txt", Int8)
     m1=Float64[]
     for i=1:n_sweep
         ising2d_ifelse!(spin,1/T,1)
-        push!(m1,magnetization_ising2d(s))                                  
+        push!(m1,magnetization_ising2d(spin))                                  
     end
-time=Float64[]
-for i in 1:5000
-    push!(time,i)
-    end
-    #return plot(time,time_correlation(m1),xlims=(10, 1000),xlabel = "Tiempo", ylabel = "C(t)",label="L=200, T = 3.0")
-    return time_correlation(m1)
+    corr=time_correlation(m1,connected=true,normalized=true)
+    time=collect(1:size(corr,1))
+    #    return plot(time,corr,xlims=(10, 1000),xlabel = "Tiempo", ylabel = "C(t)",label="L=200, T = 3.0")
+    return corr
 end
 
-using BioStatPhys
-n_sweep = 10
-@time function correlacion_temporal(T,Lsize)
-    spin = convert(Array{Int8},readdlm("config_$(Lsize)_$(T).txt", '\t'))
-    m1=Float64[]
-    for i=1:n_sweep
-        ising2d_ifelse!(spin,1/T,1)
-        push!(m1,magnetization_ising2d(s))                                  
-    end
-time=Float64[]
-for i in 1:5000
-    push!(time,i)
-    end
-    #return plot(time,time_correlation(m1),xlims=(10, 1000),xlabel = "Tiempo", ylabel = "C(t)",label="L=200, T = 3.0")
-    #return time_correlation(m1)
-    return m1
-    #return spin
-end
 
-#("config_$(Lsize)_$(T).txt", '\t')
+# Para usar tcorr_vsT:
+# cargar temps y Lsize
+# luego llamar T,tau=tcorr_vsT()
+# luego plotear tau vs T, tiene que dar un pico
+function tcorr_vsT()
+    tau=Float64[]
+    for T in temps
+        corr=correlacion_temporal(T,Lsize)
+        push!(tau,correlation_time_spectral(corr,1))
+    end
+    return collect(temps),tau
+end
