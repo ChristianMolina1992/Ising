@@ -180,7 +180,7 @@ function graf()
         end
         ma_ave = Statistics.mean(m1)  # Statistics.mean(m1)
         #en_ave = Statistics.mean(e1)  # Statistics.mean(e1)
-        susceptibility = Statistics.var(m1)/T
+        susceptibility = ((Lsize)^2)*(Statistics.var(m1)/T)
         #heat_capacity = Statistics.var(e1)/T^2
                 
         push!(mt,ma_ave)
