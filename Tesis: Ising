@@ -147,3 +147,16 @@ function tcorr_vsT()
     end
     return collect(temps),tau
 end
+
+
+
+#Para el calculo de la distribucion
+
+function distribucion(T,Lsize)
+    tiempo_relaj=Float64[]
+    for deltaT in 1:10000
+        corr = correlacion_temporal(T,Lsize)
+        push!(tiempo_relaj,correlation_time_spectral(corr,deltaT))
+    end
+ return collect(tiempo_relaj)
+end
