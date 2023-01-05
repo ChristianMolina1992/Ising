@@ -152,11 +152,38 @@ end
 
 #Para el calculo de la distribucion
 
-function distribucion(T,Lsize)
-    tiempo_relaj=Float64[]
-    for deltaT in 1:10000
-        corr = correlacion_temporal(T,Lsize)
-        push!(tiempo_relaj,correlation_time_spectral(corr,deltaT))
+n_sweep = 1000000
+@time function distribuciones(T,Lsize)
+    spin = readdlm("config_$(Lsize)_$(T).txt", Int8)  
+    
+    tiempo_relaj = Float64[]
+    m1 = Float64[]
+   
+    for i=1:n_sweep
+        ising2d_ifelse!(spin,1/T,1)
+        push!(m1,magnetization_ising2d(spin))                                        
     end
- return collect(tiempo_relaj)
+    for t0 in 1:100
+    corr = time_correlation(m1,connected=true)
+    push!(tiempo_relaj,correlation_time_spectral(corr,t0*1000))  
+    
+    #En el código que me pasó, no funcionaba si ponía time_correlation(m1,connected=true,t0=t0, por lo que busque un por lo que busqué un poco más en la fuente de como funcionaba 
+    y defenía a t0 = Deltat/1000, entonces por eso puse t0*1000 )
+         
+        
+        end
+        
+        
+     #Esta parte era para graficar el histograma, en principio el programa de arriba funciona correctamente, recién hoy lo logré hacer funcionar pero no sé si es correcto,
+     esta sería la parte para graficar el histograma.
+    struct Histogram
+    his = Histogram(50, max = maximum(tiempo_relaj), min = minimun(tiempo_relaj))
+    for tiempo in tiemporelaj 
+    push!(his,tiempo) 
+    tiempo,prob=prob(his)
+    end
+    end
+    return plot(prob(his), tiempo)
+    
+        
 end
