@@ -189,6 +189,34 @@ n_sweep = 1000000
 end
 
 
+
+
+
+
+using BioStatPhys
+n_sweep = 1000000
+@time function correlacion_temporal(T,Lsize)
+    spin = readdlm("config_$(Lsize)_$(T).txt", Int8)
+    m1=Float64[]
+    for i=1:n_sweep
+        ising2d_ifelse!(spin,1/T,1)
+        push!(m1,magnetization_ising2d(spin))                                  
+    end
+     corr=time_correlation(m1,connected=true,normalized=true)
+    time=collect(1:size(corr,1))
+    return corr
+    #return plot(time, corr, xlabel = "time", ylabel = "C(t)")  
+end
+
+function tcorrvsT(Lsize)
+    tau=Float64[]
+    for T in temps
+        corr=correlacion_temporal(T,Lsize)
+        push!(tau,correlation_time_spectral(corr,1))
+    end
+ return collect(temps),tau
+end
+
 #Con esto calculaba los histogramas
 
 n_sweep = 200000
