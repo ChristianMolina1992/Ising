@@ -187,3 +187,49 @@ n_sweep = 1000000
     
         
 end
+
+
+#Con esto calculaba los histogramas
+
+n_sweep = 200000
+@time function distribuciones(T,Lsize)
+    spin = readdlm("config_$(Lsize)_$(T).txt", Int8) 
+
+    tiempo_relaj = Float64[]
+    m1 = Float64[]
+
+    for i=1:n_sweep
+        ising2d_ifelse!(spin,1/T,1)
+        push!(m1,magnetization_ising2d(spin))                                       
+    end
+    m1=transpose(m1)
+    mmean=Statistics.mean(m1).*ones(size(m1))
+    fail=0
+    for t0 in 1:n_sweep÷5
+        corr = BioStatPhys.time_correlation_tw_direct(m1,connected=true,i0=t0,Xmean=mmean,normalized=true)
+        
+        try
+            tau=correlation_time_spectral(corr,1)
+            push!(tiempo_relaj,tau)
+        catch
+            fail+=1
+        end
+    end
+    if fail>0 @warn "Failed $(fail) tau" 
+    end
+    writedlm("tiempos_$(Lsize)_$(T).txt",tiempo_relaj)
+    return collect(tiempo_relaj)
+end
+    
+
+
+@time function histograma(T,Lsize)
+time = readdlm("tiempos_$(T)_$(Lsize).txt",  '\t', '\n')
+min,max=extrema(time)
+    his = Histogram(100, max = max, min = min)
+    for tiempo in time
+        push!(his,tiempo)
+    end
+    return prob(his)
+end
+
