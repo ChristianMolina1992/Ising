@@ -261,3 +261,8 @@ min,max=extrema(time)
     return prob(his)
 end
 
+#CORRELACION ESPACIAL
+    
+ x = distance_binning(readdlm("config_$(100)_$(2.27).txt", Int8),Δr=1.;rmin=0.,rmax=nothing)
+    
+ space_correlation(x,readdlm("config_$(100)_$(2.27).txt", Int8); connected=true, normalized=false, Xmean=nothing)
