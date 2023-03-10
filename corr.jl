@@ -48,5 +48,15 @@ function compute_times(;L,ntimes,mlen)
     return times
 end
 
+##PARA CONTAR LOS CEROS Y VERIFICAR QUE COINCIDE CON LOS TAU FALLIDOS
+
+B = [(0, count(==(0), p_20))]
 
 
+##PARA ELIMINAR LOS CEROS Y DARME EL VALOR MEDIO
+
+using Statistics 
+function remove!(g,a)
+    deleteat!(g, findall(x->x==a, g))
+    return Statistics.mean(g)
+end
