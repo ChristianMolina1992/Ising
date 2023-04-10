@@ -1,35 +1,48 @@
-###Esto no da, el error esta en el binning, si corro solo el binning no da
+##Calculo la longitud de correlacion 
 
-
+using JLD
 using LatticeModels
 using BioStatPhys
 using DelimitedFiles
 
-# Definir el tamaño de la red y el binning espacial
-L = 50
-pos = collect([(x,y) for x in 1:L for y in 1:L], L, L)
-binning = distance_binning(pos, 1.)
+function compute_long(;L,nlong,mlen,T)
+    IS = Ising(SQLattice_periodic,L,L)
+    conf = load("/Users/christian/SQconf_Tc_L$(L).jld","IS.σ")
+    IS.σ .= conf
+    set_energy_mag!(IS)
+    set_temperature!(IS,Ising_SQ_critical_temperature)
+    epsilon=zeros(Float64,nlong)
+    fail = 0
+    
+    i = 1
+    pos = zeros(L, 2)
+    for x = 1:L^0.5, y = 1:L^0.5
+        pos[i, 1] = x
+        pos[i, 2] = y
+        i += 1
+    end
+     binning = distance_binning(pos, 1.0, rmin=0.0)
+    
+    for i ∈ eachindex(epsilon)
+        try
+            _,M = Metropolis!(IS,steps=mlen,save_interval=1)
+            M = transpose(M)
+            #C=BioStatPhys.time_correlation_tw_direct(M,connected=true,i0=1,Xmean=zeros(size(M)),normalized=true)
+            # C=time_correlation(M,connected=true,normalized=true,i0=1)
+            r,C=space_correlation(binning, load("/Users/christian/SQconf_Tc_L$(L).jld","IS.σ"), connected=true,normalized=true)
+            epsilon[i] = correlation_length_r0(r,C)
+            #times[i]=correlation_time_spectral(C,1)
+        catch
+            fail += 1
+        end
+    end
+    if fail>0 @warn "Failed $(fail)" end
 
-# Cargar los datos de la variable X
-X = load("X_$(L).txt")
+    writedlm("long_$(L)_$(nlong)_$(mlen).txt",epsilon)
+    return epsilon
+end
 
-# Calcular la correlación espacial de X
-corr = space_correlation(binning, X, connected=true, normalized=true, Xmean=mean(X))
-
-# Guardar los resultados en un archivo de texto
-#corr_esp = "corr_esp_$(L).txt.txt"
-#writedlm(aca guardaria las correlaciones)
+#Con esto corro el programa @time compute_long(L=20,nlong=1000,mlen=500,T=Ising_SQ_critical_temperature), pero me dan toda las longtudes iguales
 
 
-###Esto parecde que funciona,
 
-using BioStatPhys
-
-# Generar 100 puntos aleatorios en un cubo de lado 10
-pos = 10 .* rand(100, 3)
-
-# Calcular la matriz de distancias para todos los pares de puntos
-bins = distance_binning(pos, 1.0)
-
-# Obtener los índices de los pares de puntos a una distancia de 2 a 3 unidades
-pairs_indices = bins[2.0:3.0]
