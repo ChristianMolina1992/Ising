@@ -45,4 +45,15 @@ end
 #Con esto corro el programa @time compute_long(L=20,nlong=1000,mlen=500,T=Ising_SQ_critical_temperature), pero me dan toda las longtudes iguales
 
 
-
+##Para las distribuciones y poder graficarlo
+using BioStatPhys
+@time function histograma_new_long(L,nlong,mlen,bins)
+long = readdlm("long_$(L)_$(mlong)_$(mlen).txt",  '\t', '\n')
+    #remove(vec(readdlm("times_$(20)_$(500)_$(4420).txt")),0)
+min,max=extrema(long)
+    his = Histogram(bins, max = max, min = min)
+    for longitud in long
+        push!(his,longitud)
+    end
+    return prob(his)
+end
