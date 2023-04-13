@@ -4,19 +4,20 @@ using JLD
 using LatticeModels
 using BioStatPhys
 using DelimitedFiles
+using Plots 
 
-function compute_long(;L,nlong,mlen,T)
+function compute_long(;L,nlong,mlen)
     IS = Ising(SQLattice_periodic,L,L)
     conf = load("/Users/christian/SQconf_Tc_L$(L).jld","IS.σ")
-    IS.σ .= conf
+    IS.σ = conf
     set_energy_mag!(IS)
     set_temperature!(IS,Ising_SQ_critical_temperature)
     epsilon=zeros(Float64,nlong)
     fail = 0
     
     i = 1
-    pos = zeros(L, 2)
-    for x = 1:L^0.5, y = 1:L^0.5
+    pos = zeros(L^2, 2)
+    for x = 1:L, y = 1:L
         pos[i, 1] = x
         pos[i, 2] = y
         i += 1
@@ -25,23 +26,23 @@ function compute_long(;L,nlong,mlen,T)
     
     for i ∈ eachindex(epsilon)
         try
-            _,M = Metropolis!(IS,steps=mlen,save_interval=1)
+            _,M = Wolff!(IS,steps=mlen,save_interval=1)
             M = transpose(M)
             #C=BioStatPhys.time_correlation_tw_direct(M,connected=true,i0=1,Xmean=zeros(size(M)),normalized=true)
             # C=time_correlation(M,connected=true,normalized=true,i0=1)
-            r,C=space_correlation(binning, load("/Users/christian/SQconf_Tc_L$(L).jld","IS.σ"), connected=true,normalized=true)
+            r,C = space_correlation(binning, reshape(IS.σ,L^2), connected=true,normalized=true)
             epsilon[i] = correlation_length_r0(r,C)
             #times[i]=correlation_time_spectral(C,1)
         catch
             fail += 1
         end
     end
-    if fail>0 @warn "Failed $(fail)" end
+    if fail>0 @warn "Failed $(fail)" 
+    end
 
-    writedlm("long_$(L)_$(nlong)_$(mlen).txt",epsilon)
-    return epsilon
-end
-
+    #writedlm("long_$(L)_$(nlong)_$(mlen).txt",epsilon)
+    return r,C
+    
 #Con esto corro el programa @time compute_long(L=20,nlong=1000,mlen=500,T=Ising_SQ_critical_temperature), pero me dan toda las longtudes iguales
 
 
