@@ -24,22 +24,24 @@ function tauVStime(;L,nlong,ntimes,mlen)
      binning = distance_binning(pos, 1.0, rmin=0.0)
     
     for i ∈ eachindex(epsilon)   
-        try
-            _,M = Wolff!(IS,steps=mlen,save_interval=1)
-            M = transpose(M)
-            s=reshape(IS.σ,L^2)           
-            r,C = space_correlation(binning, reshape(IS.σ,L^2), connected=true,normalized=true)
-            epsilon[i] = correlation_length_r0(r,C)
-            D=BioStatPhys.time_correlation_tw_direct(M,connected=true,i0=1,Xmean=zeros(size(M)),normalized=true)
-            times[i]=correlation_time_spectral(D,1)
-    catch
-            fail += 1
+    s=reshape(IS.σ,L^2)           
+    r,C = space_correlation(binning,reshape(IS.σ,L^2),connected=true,normalized=true)
+    epsilon[i] = correlation_length_r0(r,C)
+    try
+         _,M = Metropolis!(IS,steps=mlen,save_interval=1)
+        M = transpose(M)
+        D=BioStatPhys.time_correlation_tw_direct(M,connected=true,i0=1,Xmean=zeros(size(M)),normalized=true)
+        times[i]=correlation_time_spectral(D,1)
+        catch
+          fail += 1
         end
+    
     end
     
     if fail>0 @warn "Failed $(fail)" 
     end
-    #writedlm("tamaño_ro_$(L)_$(nlong)_$(mlen).txt",epsilon)
-    #writedlm("tamaño_tau_$(L)_$(ntimes)_$(mlen).txt",times)
+    writedlm("tamaño_ro_$(L)_$(nlong)_$(mlen).txt",epsilon)
+    
+    writedlm("tamaño_tau_$(L)_$(ntimes)_$(mlen).txt",times)
     return epsilon,times
 end
