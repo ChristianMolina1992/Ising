@@ -45,3 +45,7 @@ function tauVStime(;L,nlong,ntimes,mlen)
     writedlm("tamaño_tau_$(L)_$(ntimes)_$(mlen).txt",times)
     return epsilon,times
 end
+
+
+
+##p_100 = @time compute_times(L=100, ntimes=3000, mlen=550000)
