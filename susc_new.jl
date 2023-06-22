@@ -50,7 +50,7 @@ function compute_times(;L,ntimes,mlen)
         try
             _,M = Metropolis!(IS,steps=mlen,save_interval=1)
             M = transpose(M)
-            C=BioStatPhys.time_correlation_tw_direct(M,connected=true,i0=nothing,Xmean=zeros(size(M)),normalized=true)
+            C=BioStatPhys.time_correlation_tw_direct(M,connected=true,i0=nothing,Xmean=zeros(size(M)),normalized=false)
             # C=time_correlation(M,connected=true,normalized=true,i0=1)
            
             times[i]=correlation_time_spectral(C,1)
