@@ -3,7 +3,8 @@ using JLD
 using Ising2D
 using Statistics
 
-n_sweep = 2500           # number of sweeps between sampling
+nsample=1000
+n_sweep = 250           # number of sweeps between sampling
 steps = 5000          # number of sweeps to thermalize
 temps   = 2.7:-0.05:1.8  #temperatures to sample
 
@@ -12,15 +13,11 @@ function graf(;L)
     xt = Float64[]
     IS = Ising(SQLattice_periodic,L,L)
     for T in temps      #loop en la temperatura, termaliza
-        IS = Ising(SQLattice_periodic,L,L,T)
-        Wolff!(IS,steps)
-        m1=Float64[]
-        for i=1:n_sweep
-            _,M=Wolff!(IS,n_sweep)
-            push!(m1,M)                  
-        end
+        set_temperature!(IS,T)
+        Wolff!(IS,steps=steps)
+        _,m1 = Wolff!(IS,steps=nsample*n_sweep,save_interval=n_sweep)
         ma_ave = Statistics.mean(m1)  # Statistics.mean(m1)
-        susceptibility = ((Lsize)^2)*(Statistics.var(m1)/T)
+        susceptibility = (L^2)*(Statistics.var(m1)/T)
                 
         push!(mt,ma_ave)
         push!(xt,susceptibility)
@@ -30,13 +27,6 @@ function graf(;L)
     return collect(temps),xt
     
 end
-
-
-
-using JLD
-using LatticeModels
-using BioStatPhys
-using DelimitedFiles
 
 function compute_times(;L,ntimes,mlen)
     IS = Ising(SQLattice_periodic,L,L)
