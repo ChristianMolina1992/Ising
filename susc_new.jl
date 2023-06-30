@@ -16,8 +16,8 @@ function graf(;L)
         Wolff!(IS,steps)
         m1=Float64[]
         for i=1:n_sweep
-            Wolff!(IS,n_sweep)
-            push!(m1,magnetization_ising2d(IS))                  
+            _,M=Wolff!(IS,n_sweep)
+            push!(m1,M)                  
         end
         ma_ave = Statistics.mean(m1)  # Statistics.mean(m1)
         susceptibility = ((Lsize)^2)*(Statistics.var(m1)/T)
