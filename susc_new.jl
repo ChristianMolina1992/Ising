@@ -28,7 +28,18 @@ function graf(;L)
     
 end
 
-function compute_times(;L,ntimes,mlen)
+
+
+#ESTO SERIA LO NUEVO PARA CALCULAR CORRELACIONES TEMPORALES PROMEDIANDO SOBRE ORIGEN TEMPORAL
+
+using JLD
+using LatticeModels
+using BioStatPhys
+using DelimitedFiles
+
+
+
+function compute_times_with(;L,ntimes,pasos)
     IS = Ising(SQLattice_periodic,L,L)
     conf = load("/Users/christian/SQconf_Tc_L$(L).jld","IS.σ")
     IS.σ .= conf
@@ -36,13 +47,12 @@ function compute_times(;L,ntimes,mlen)
     set_temperature!(IS,Ising_SQ_critical_temperature)
     times=zeros(Float64,ntimes)
     fail = 0
-    for i ∈ eachindex(times)
+    for t0 in pasos
         try
-            _,M = Metropolis!(IS,steps=mlen,save_interval=1)
+            _,M = Metropolis!(IS,steps=pasos,save_interval=1)
             M = transpose(M)
-            C=BioStatPhys.time_correlation_tw_direct(M,connected=true,i0=nothing,Xmean=zeros(size(M)),normalized=false)
-            # C=time_correlation(M,connected=true,normalized=true,i0=1)
-           
+            C=time_correlation(M,connected=true,i0=t0,Xmean=zeros(size(M)))
+                     
             times[i]=correlation_time_spectral(C,1)
         catch
             fail += 1
@@ -50,6 +60,6 @@ function compute_times(;L,ntimes,mlen)
     end
     if fail>0 @warn "Failed $(fail)" end
 
-    writedlm("times_$(L)_$(ntimes)_$(mlen).txt",times)
+    #writedlm("times_$(L)_$(ntimes)_$(mlen).txt",times)
     return times
 end
