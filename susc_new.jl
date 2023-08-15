@@ -37,8 +37,6 @@ using LatticeModels
 using BioStatPhys
 using DelimitedFiles
 
-
-
 function compute_times_with(;L,ntimes,pasos)
     IS = Ising(SQLattice_periodic,L,L)
     conf = load("/Users/christian/SQconf_Tc_L$(L).jld","IS.σ")
@@ -50,8 +48,7 @@ function compute_times_with(;L,ntimes,pasos)
     for t0 in pasos
         try
             _,M = Metropolis!(IS,steps=pasos,save_interval=1)
-            M = transpose(M)
-            C=time_correlation(M,connected=true,i0=t0,Xmean=zeros(size(M)))
+            C=time_correlation(M,connected=true)
                      
             times[i]=correlation_time_spectral(C,1)
         catch
