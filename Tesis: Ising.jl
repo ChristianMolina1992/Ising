@@ -266,3 +266,39 @@ end
  x = distance_binning(readdlm("config_$(100)_$(2.27).txt", Int8),Δr=1.;rmin=0.,rmax=nothing)
     
  space_correlation(x,readdlm("config_$(100)_$(2.27).txt", Int8); connected=true, normalized=false, Xmean=nothing)
+
+
+
+using JLD
+using LatticeModels
+using BioStatPhys
+using DelimitedFiles
+
+function compute_times(;L,ntimes,mlen)
+    IS = Ising(SQLattice_periodic,L,L;seed=45566)
+    conf = load("/Users/christian/SQconf_Tc_L$(L).jld","IS.σ")
+    IS.σ .= conf
+    set_energy_mag!(IS)
+    set_temperature!(IS,Ising_SQ_critical_temperature)
+    times=zeros(Float64,ntimes)
+    fail = 0
+    for i ∈ eachindex(times)
+        try
+            _,M = Metropolis!(IS,steps=mlen,save_interval=1)
+            M = transpose(M)
+            C=BioStatPhys.time_correlation_tw_direct(M,connected=true,i0=1,Xmean=zeros(size(M)),normalized=true)
+            # C=time_correlation(M,connected=true,normalized=true,i0=1)
+           
+            times[i]=correlation_time_spectral(C,1)
+        catch
+            fail += 1
+        end
+    end
+    if fail>0 @warn "Failed $(fail)" end
+
+    writedlm("times_$(L)_$(ntimes)_$(mlen).txt",times)
+    return times
+end
+
+
+p_100 = @time compute_times(L=100, ntimes=1, mlen=2000000)
