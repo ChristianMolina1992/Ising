@@ -10,7 +10,7 @@ function prueba(;L, ntimes, mlen)
     set_energy_mag!(IS)
     set_temperature!(IS, Ising_SQ_critical_temperature)
     times = zeros(Float64, ntimes)
-    correlacion = zeros(Float64, ntimes)
+    correlacion = []
     fail = 0
     for i ∈ eachindex(times)
         try
