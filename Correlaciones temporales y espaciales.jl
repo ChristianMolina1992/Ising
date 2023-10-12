@@ -20,18 +20,40 @@ function prueba(;L, ntimes, mlen)
             #println("Iteración $i: C = $C")
             times[i]=correlation_time_spectral(C,1)
             push!(correlacion,C)
+            #eje=collect(1:size(C,1))
         catch
             fail += 1
         end
     end
-
     if fail > 0
         @warn "Failed $(fail)"
     end
+ return correlacion
 
-    #writedlm("times_$(L)_$(ntimes)_$(mlen).txt", times)
-    return correlacion, times
 end
+
+
+# Asegurate de que todos los vectores tengan la misma longitud
+longitud_referencia = length(y_20[2])
+#for vec in y_20
+    #if length(vec) != longitud_referencia
+        #throw(ArgumentError("Los vectores deben tener la misma longitud"))
+    #end
+#end
+
+# Inicializa la suma con un vector de ceros
+suma = zeros(eltype(y_20[1]), longitud_referencia)
+
+# Calcula la suma de los componentes correspondientes en cada vector
+for vec in y_20
+    if length(vec) == longitud_referencia
+        suma .+= vec
+    end
+end
+
+# Calcula el promedio dividiendo la suma entre el número de vectores originales
+num_vectores = length(y_20)
+promedio = suma / (num_vectores-1)
 
 
 
