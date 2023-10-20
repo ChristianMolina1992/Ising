@@ -63,14 +63,14 @@ using BioStatPhys
 using DelimitedFiles
 using Plots 
 
-function prueba_corr_rvs_C(;L,nlong,mlen)
+function correlacion_espacial(;L,nlong,mlen)
     IS = Ising(SQLattice_periodic,L,L)
     conf = load("/Users/christian/SQconf_Tc_L$(L).jld","IS.σ")
     IS.σ = conf
-    #matriz=zeros((L^2),longitud)
     set_energy_mag!(IS)
     set_temperature!(IS,Ising_SQ_critical_temperature)
     epsilon=zeros(Float64,nlong)
+    correlacion = []
     fail = 0
     
     i = 1
@@ -87,9 +87,9 @@ function prueba_corr_rvs_C(;L,nlong,mlen)
             _,M = Wolff!(IS,steps=mlen,save_interval=1)
             M = transpose(M)
             s=reshape(IS.σ,L^2)  
-            #matriz[:,i].=s      #agrega los valores a la primera columna de la matriz
             
-            r[i],C = space_correlation(binning, reshape(IS.σ,L^2), connected=true,normalized=true)
+            r,C = space_correlation(binning, reshape(IS.σ,L^2), connected=true,normalized=true)
+            push!(correlacion,C)
             #epsilon[i] = correlation_length_r0(r,C)
     catch
             fail += 1
@@ -98,6 +98,9 @@ function prueba_corr_rvs_C(;L,nlong,mlen)
     
     if fail>0 @warn "Failed $(fail)" 
     end
-    #writedlm("long_$(L)_$(nlong)_$(mlen).txt",epsilon)
-    return r,C
+    
+    return correlacion
 end
+
+#Para graficar
+#@time dato_20_corr_esp = correlacion_espacial(L=20,nlong=2000,mlen=20000)
