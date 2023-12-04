@@ -23,7 +23,7 @@ using DelimitedFiles
 
 function compute_times(;L,ntimes,mlen,T)
     IS = Ising(SQLattice_periodic,L,L)
-    conf = load("/Users/christian/SQconf_L$(L)_T$(T).jld","IS.σ")
+    conf = load("/Users/christian/SQconf_Tc_L$(L).jld","IS.σ")
     IS.σ .= conf
     set_energy_mag!(IS)
     set_temperature!(IS,T)
