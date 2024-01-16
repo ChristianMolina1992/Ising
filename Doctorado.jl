@@ -26,4 +26,4 @@ function configuracion(;T,L,nterm,n)
     end
 end
 
-
+#Acordate de cmo calcular la susceptibilidad y poner la temperatura critica, y ademas normalizar la temperatura.
