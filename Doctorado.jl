@@ -98,3 +98,12 @@ for T=0.2*Tc:0.05:1.4*Tc
     push!(susceptibility_20,sus)
 end
 
+using JLD
+using LatticeModels
+using Plots
+
+Tc = Ising_SQ_critical_temperature
+ejey = [0.0223066,0.02209,0.02315817] .* 100^(7/4)
+ejex = (([ 0.9, 1.0,1.1,] .* Tc .- Tc) ./ Tc) * (-100)
+
+plot(ejex, ejey, seriestype=:scatter,label="L100")
