@@ -111,23 +111,24 @@ plot(ejex, ejey, seriestype=:scatter,label="L100")
 
 
 
-##PARA VER SI ESTA BIEN
 
+##PARA VER SI ESTA BIEN
 
 Tc=Ising_SQ_critical_temperature
 L=100
-n=10000
+n=10000    #los pasos que haré y la cantidad de magnetizaciones que tendré que luego utilizaré para calcular la C(t)
 
 
 function mag()
     IS = Ising(SQLattice_periodic, L, L, ordered=true)
-    conf=load("/home/cmolina/Documentos/Julia/SQconfig_L100_Tc_ndata20000.jld")
+    conf=load("/home/cmolina/Documentos/Julia/SQconfig_L100_Tc_ndata20000.jld")  #donde tengo guardado la configuración inicial de Wolff termalizada
     IS.σ = conf["IS.σ"]
     set_temperature!(IS, Tc)
     set_energy_mag!(IS)
     E,M = Wolff!(IS,steps=n,save_interval=1)
     return M
 end
-C = BioStatPhys.time_correlation_tw_direct(transpose(M_100), connected=true, i0=1, Xmean=zeros(size(M)), normalized=true)
+#una vez calculado M, calculo abajo la correlación y luego el tiempo de relajación
+#C = BioStatPhys.time_correlation_tw_direct(transpose(M_100), connected=true, i0=1, Xmean=zeros(size(M)), normalized=true)
 
-correlation_time_spectral(C,1)
+#correlation_time_spectral(C,1)
