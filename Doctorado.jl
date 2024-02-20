@@ -107,3 +107,27 @@ ejey = [0.0223066,0.02209,0.02315817] .* 100^(7/4)
 ejex = (([ 0.9, 1.0,1.1,] .* Tc .- Tc) ./ Tc) * (-100)
 
 plot(ejex, ejey, seriestype=:scatter,label="L100")
+
+
+
+
+##PARA VER SI ESTA BIEN
+
+
+Tc=Ising_SQ_critical_temperature
+L=100
+n=10000
+
+
+function mag()
+    IS = Ising(SQLattice_periodic, L, L, ordered=true)
+    conf=load("/home/cmolina/Documentos/Julia/SQconfig_L100_Tc_ndata20000.jld")
+    IS.σ = conf["IS.σ"]
+    set_temperature!(IS, Tc)
+    set_energy_mag!(IS)
+    E,M = Wolff!(IS,steps=n,save_interval=1)
+    return M
+end
+C = BioStatPhys.time_correlation_tw_direct(transpose(M_100), connected=true, i0=1, Xmean=zeros(size(M)), normalized=true)
+
+correlation_time_spectral(C,1)
