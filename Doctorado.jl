@@ -132,3 +132,46 @@ end
 #C = BioStatPhys.time_correlation_tw_direct(transpose(M_100), connected=true, i0=1, Xmean=zeros(size(M)), normalized=true)
 
 #correlation_time_spectral(C,1)
+
+
+
+
+#Para calcular las correlaciones para todas las semillas 
+
+using Printf
+
+ruta_base = "/home/cmolina/Documentos/Fortran/L=50/"
+num_archivos = 100
+num_semillas = 2  # Cambiar según la cantidad de semillas que tengas
+
+# Crear un vector de vectores para almacenar las correlaciones de todas las semillas
+correlaciones_totales = Vector{Vector{Float64}}[]
+
+for semilla in 1:num_semillas
+    corr = Vector{Float64}[]  # Reiniciar el vector de correlaciones para cada semilla
+    fail = 0  # Reiniciar el contador de fallos antes del bucle interno
+
+    for archivo in 1:num_archivos
+        try
+            # Construir la ruta completa del archivo
+           
+            ruta_completa = joinpath(ruta_base, "SQ_L0050_seed$semilla", "Mag-SQconf_L0050_seed$semilla"* "_$(@sprintf("%04d", archivo))")
+            data = readdlm(ruta_completa, header=false, skipstart=4)
+
+            M = data[:, 2]
+            M = transpose(M)
+            C = BioStatPhys.time_correlation_tw_direct(M, connected=true, i0=1, Xmean=zeros(size(M)), normalized=true)
+            push!(corr, C)
+        catch
+            fail += 1
+        end
+    end
+
+    if fail > 0
+        @warn "Failed to process $fail files for seed $semilla."
+    end
+
+    push!(correlaciones_totales, corr)
+end
+
+# Ahora correlaciones_totales contiene todas las correlaciones para todas las semillas
