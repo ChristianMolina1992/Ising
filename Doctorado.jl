@@ -175,3 +175,59 @@ for semilla in 1:num_semillas
 end
 
 # Ahora correlaciones_totales contiene todas las correlaciones para todas las semillas
+
+#Para hacerlo en casa lo de 500
+
+
+
+#Programa para calcular el tau con wolff y ver cada cuanto guardo (en realidad agarro el wolff ya creado y lo corro mas tiempo)
+
+using JLD
+using DelimitedFiles
+using LatticeModels
+using BioStatPhys
+
+Tc = Ising_SQ_critical_temperature
+
+function config_wolff(;L,ndata,n)
+    IS = Ising(SQLattice_periodic, L, L, ordered=true)
+    conf = load("/home/cmolina/Documentos/Julia/SQconfig_L$(L)_Tc_ndata$(ndata).jld")
+    IS.σ = conf["IS.σ"]
+    set_temperature!(IS, Tc)
+    set_energy_mag!(IS)
+    
+    #Rutas donde voy a guardar en formato jld y txt
+    ruta = "/home/cmolina/Documentos/Julia/L=$(L)/SQconfig_L$(L)_n$(n+ndata).txt"
+    file="/home/cmolina/Documentos/Julia/L=$(L)/SQconfig_L$(L)_n$(n+ndata).jld"
+    
+    Wolff!(IS, steps=n, save_interval=1)
+    
+    #Para guardar 
+    
+    @save file IS.σ
+    writedlm(ruta, IS.σ)    
+end
+
+
+#Para calcular las distintas configuraciones de Wolff o mejor dicho, los distintos r0 o semillas (luego vendria el programa de Leti)
+
+function distintas_config_wolff(;L,n,ndata)
+    IS = Ising(SQLattice_periodic, L, L, ordered=true)
+    conf = load("/home/cmolina/Documentos/Julia/L=$(L)/SQconfig_L$(L)_n$(ndata).jld")
+    IS.σ = conf["IS.σ"]
+    set_temperature!(IS, Tc)
+    set_energy_mag!(IS)
+    
+    # Ruta base donde se guardarán los archivos
+    ruta_base = "/home/cmolina/Documentos/Julia/L=$(L)/SQconfig_L$(L)_pasos"
+    
+    # Para guardar las distintas configuraciones cada 1000 pasos
+    for i in 0:1000:n
+        Wolff!(IS, steps=1000, save_interval=1)
+        pasos = ndata + i  # Calcula el número de pasos actual
+        ruta = string(ruta_base, pasos, ".txt")  # Construye el nombre del archivo
+        writedlm(ruta, IS.σ)
+    end
+end
+
+
