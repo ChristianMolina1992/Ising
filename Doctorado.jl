@@ -146,3 +146,114 @@ for semilla in 1:num_semillas
 end 
 
 
+#6)##Codigo para calcular el promedio de las correlaciones, sin usar el readdlm y preservar la memoria
+
+using Statistics
+
+# Definir el nombre del archivo
+archivo = "/media/cmolina/Datos/Iflysib/Julia/L=20/correlaciones_20_concatenado.txt"
+
+# Definir una función para calcular el promedio por columna
+function calcular_promedio_columnas(archivo)
+    # Crear un vector para almacenar la suma de cada columna
+    suma_columnas = zeros(Float64, 499000)
+    
+    # Contador para mantener el número de líneas
+    cantidad_filas = 0
+    
+    # Abrir el archivo
+    open(archivo) do file
+        # Leer cada línea del archivo
+        for linea in eachline(file)
+            # Incrementar el contador de líneas
+            cantidad_filas += 1
+            
+            # Dividir la línea en elementos
+            elementos = parse.(Float64, split(linea))[1:499000]
+            
+            # Sumar cada elemento a la suma correspondiente de la columna
+            for (indice, valor) in enumerate(elementos)
+                suma_columnas[indice] += valor
+            end
+        end
+    end
+    
+    # Calcular el promedio de cada columna
+    promedio_columnas = suma_columnas / cantidad_filas
+    
+    return promedio_columnas
+end
+
+
+
+#Y con esto guardaba los taus
+using DelimitedFiles
+
+# Ruta para guardar el archivo
+ruta_directorio = "/media/cmolina/Datos/"
+ruta_guardado = joinpath(ruta_directorio, "promedio_columnas_200.txt")
+
+# Crear el directorio si no existe
+if !isdir(ruta_directorio)
+    mkdir(ruta_directorio)
+end
+
+# Guardar los datos en el archivo de texto
+writedlm(ruta_guardado, promedio_columnas_200, ' ')
+
+
+# Con esto calculaba la cantidad de vectores que tenía la primera fila para usarlo arriba
+promedio_columnas_20 = calcular_promedio_columnas(archivo)
+
+
+
+
+
+##Para calcular cuantos elementos tienen los vectores
+
+# Definir el nombre del archivo
+archivo = "/media/cmolina/Datos/Iflysib/Julia/L=20/correlaciones_20_concatenado.txt"
+
+# Abrir el archivo
+open(archivo) do file
+    # Leer la primera línea del archivo
+    primera_linea = readline(file)
+    
+    # Contar el número de elementos en la primera línea
+    longitud_primer_vector = count(x -> x == ' ', primera_linea) + 1
+    
+    # Imprimir la longitud del primer vector
+    println("La longitud del primer vector es: $longitud_primer_vector")
+end
+
+
+
+## Programa para cambiar nombres
+
+# Función para cambiar el nombre de los archivos en un directorio
+function cambiar_nombres(directorio::String, prefijo_original::String, prefijo_nuevo::String)
+    # Obtener lista de archivos en el directorio
+    archivos = readdir("/media/cmolina/Datos/Iflysib/SQ_L0100_seed4/")
+    
+    # Iterar sobre cada archivo
+    for archivo in archivos
+        # Verificar si el archivo comienza con el prefijo original
+        if startswith(archivo, prefijo_original)
+            # Construir el nuevo nombre de archivo reemplazando el prefijo
+            nuevo_nombre = replace(archivo, prefijo_original => prefijo_nuevo)
+            # Renombrar el archivo
+            mv(joinpath(directorio, archivo), joinpath(directorio, nuevo_nombre))
+        end
+    end
+end
+
+# Directorio donde se encuentran los archivos
+directorio = "/media/cmolina/Datos/Iflysib/SQ_L0100_seed4/"
+
+# Prefijo original y nuevo
+prefijo_original = "Mag-SQconf_L0100_seed4"
+prefijo_nuevo = "Mag-SQconf_L0100_seed16"
+
+# Llamar a la función para cambiar los nombres de los archivos
+cambiar_nombres(directorio, prefijo_original, prefijo_nuevo)
+
