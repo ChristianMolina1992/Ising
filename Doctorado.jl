@@ -257,3 +257,47 @@ prefijo_nuevo = "Mag-SQconf_L0100_seed16"
 # Llamar a la función para cambiar los nombres de los archivos
 cambiar_nombres(directorio, prefijo_original, prefijo_nuevo)
 
+
+
+
+
+#Para calcular las correlaciones para todas las semillas y una sola metropoli y guardarlo
+
+using Printf
+using JLD
+using DelimitedFiles
+using LatticeModels
+using BioStatPhys
+
+ruta_base = "/home/cmolina/Documentos/Christian/L=20"
+num_archivos = 1
+num_semillas = 31 # Cambiar según la cantidad de semillas que tengas
+
+# Crear un vector de vectores para almacenar las correlaciones de todas las semillas
+correlaciones_totales_20 = Vector{Vector{Float64}}[]
+tiempos_totales_20 = Vector{Float64}[]
+
+for semilla in 1:num_semillas
+    corr = Vector{Float64}[]  # Reiniciar el vector de correlaciones para cada semilla
+    tiempos_semilla = Float64[] 
+    for archivo in 1:num_archivos
+        # Construir la ruta completa del archivo
+        ruta_completa = joinpath(ruta_base, "SQ_L0020_seed$semilla", "Mag-SQconf_L0020_seed$semilla"* "_$(@sprintf("%04d", archivo))")
+        data = readdlm(ruta_completa, header=false, skipstart=4)
+
+        M = data[:, 2]
+        C = time_correlation(M, connected=true, normalized=true) # Promediando sobre t0
+        tiempo_relajacion = correlation_time_spectral(C, 1)  # Calcular el tiempo de relajación
+        push!(tiempos_semilla, tiempo_relajacion)
+        push!(corr, C)
+    end
+    push!(tiempos_totales_20,tiempos_semilla)
+    push!(correlaciones_totales_20, corr)
+end
+
+# Alternativamente, si prefieres concatenar los vectores en lugar de transponer las matrices:
+correlaciones_concatenadas_20 = vcat(correlaciones_totales_20...)
+
+writedlm("/home/cmolina/Documentos/Christian/Tiempos/tiempos_totales_20_1metropoli.txt",tiempos_totales_20)
+
+
