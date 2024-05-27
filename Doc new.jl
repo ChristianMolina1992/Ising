@@ -137,3 +137,50 @@ open(archivo) do file
     # Imprimir la longitud del primer vector
     println("La longitud del primer vector es: $longitud_primer_vector")
 end
+
+
+
+
+
+##PROGRAMA PARA CALCULAR LAS MAGNETIZACIONES Y SUSCEPTIBILIDADES, QUE USABA LUEGO PARA VER EL SCALING
+
+using JLD
+using LatticeModels
+using DelimitedFiles
+using Statistics  
+# Para crear las configuraciones de Wolff
+
+Tc=Ising_SQ_critical_temperature
+function config(;T,L,nterm,n)
+    IS = Ising(SQLattice_periodic, L, L, ordered=true)
+
+    set_temperature!(IS, T)
+    Wolff!(IS, steps=nterm)
+    e,m = Wolff!(IS,steps=n,save_interval=10)
+    #Guardar la configuración en un archivo de texto con formato personalizado
+    #ruta = "/home/cmolina/Documentos/Julia/Config_20/SQconfig_L$(L)_Temp$(T)_ndata$(n).txt"
+    #file="/home/cmolina/Documentos/Julia/SQconfig_L$(L)_Temp$(T)_ndata$(n).jld"
+    #@save file IS.σ
+    #writedlm(ruta, IS.σ)
+
+    mag=mean(abs.(m))
+    sus=L*L*(var(m)/T)
+    return mag,sus
+
+end
+
+@time config(T=Tc,L=20,nterm=5000,n=40000)
+
+
+##CONFIGURACIONES YA TERMALIZADAS MEDIANTE WOLFF QUE USARÉ LUEGO PARA HACER METRÓPOLIS
+using Statistics
+L = 20
+Tc=Ising_SQ_critical_temperature
+
+magnetizacion_20 = Float64[]
+susceptibility_20= Float64[]
+for T=Tc
+    mag,sus = config(T=T,L=L,nterm=5000,n=20000)
+    push!(magnetizacion_20,mag)
+    push!(susceptibility_20,sus)
+end
