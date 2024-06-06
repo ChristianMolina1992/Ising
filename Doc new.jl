@@ -184,3 +184,46 @@ for T=Tc
     push!(magnetizacion_20,mag)
     push!(susceptibility_20,sus)
 end
+
+
+
+
+#DUUDAAA
+
+using Printf
+using DelimitedFiles
+using LatticeModels
+using BioStatPhys
+
+ruta_base = "/mnt/d/Doctorado/Prueba/L=100/Configuraciones/1.01Tc"
+num_archivos = 1
+num_semillas = 1 # Cambiar según la cantidad de semillas que tengas
+
+# Abrir archivos de salida
+archivo_salida_correlaciones = open("/mnt/d/Doctorado/Prueba/L=100/Configuraciones/1.01Tc/correlaciones_100_concatenado.txt", "w")
+archivo_salida_tiempos = open("/mnt/d/Doctorado/Prueba/L=100/Configuraciones/1.01Tc/tiempos_relajacion_100.txt", "w")
+
+for semilla in 1:num_semillas
+    for archivo in 1:num_archivos
+        # Construir la ruta completa del archivo
+        ruta_completa = joinpath(ruta_base, "SQ_L0100_seed$semilla", "Mag-SQconf_L0100_seed$semilla"* "_$(@sprintf("%04d", archivo))")
+        data = readdlm(ruta_completa, header=false, skipstart=4)
+
+        M = data[:,2]
+        C = time_correlation(M, connected=true, normalized=true) # Promediando sobre t0
+        tiempo_relajacion = correlation_time_spectral(C, 1)  # Calcular el tiempo de relajación
+
+        # Escribir la correlación en el archivo
+        for valor in C
+            write(archivo_salida_correlaciones, "$valor ")
+        end
+        write(archivo_salida_correlaciones, "\n")
+
+        # Escribir el tiempo de relajación en el archivo
+        write(archivo_salida_tiempos, "$tiempo_relajacion\n")
+    end
+end
+
+# Cerrar los archivos de salida
+close(archivo_salida_correlaciones)
+close(archivo_salida_tiempos)
