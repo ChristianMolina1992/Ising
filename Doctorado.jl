@@ -1,3 +1,160 @@
+##PROGRAMA PARA CALCULAR LAS MAGNETIZACIONES Y SUSCEPTIBILIDADES, QUE USABA LUEGO PARA VER EL SCALING
+
+using JLD
+using LatticeModels
+using DelimitedFiles
+using Statistics
+using BioStatPhys
+
+# Para crear las configuraciones de Wolff
+
+Tc=Ising_SQ_critical_temperature
+function config(;T,L,nterm,n)
+    IS = Ising(SQLattice_periodic, L, L, ordered=true)
+
+    set_temperature!(IS, T)
+    Metropolis!(IS, steps=nterm)
+    e,m = Metropolis!(IS,steps=n,save_interval=10)
+    #Guardar la configuración en un archivo de texto con formato personalizado
+    ruta = "/home/cmolina/Documentos/Prueba/L=$(L)/Prueba/SQconfig_L$(L)_Temp$(T)_ndata$(n).txt"
+    file = "/home/cmolina/Documentos/Prueba/L=$(L)/Prueba/SQconfig_L$(L)_Temp$(T)_ndata$(n).jld"
+    @save file IS.σ
+    writedlm(ruta, IS.σ)
+
+    mag = Statistics.mean(abs.(m))    
+    sus = L * L * (Statistics.var(abs.(m)) / T)
+    return mag,sus
+
+end
+
+
+##CONFIGURACIONES YA TERMALIZADAS MEDIANTE WOLFF QUE USARÉ LUEGO PARA HACER METRÓPOLIS
+using Statistics
+
+Tc=Ising_SQ_critical_temperature
+Temperaturas_50 = collect(0.95:0.005:1.05)*Tc
+
+function sus_mag(;L)
+    magnetizacion = Float64[]
+    susceptibility= Float64[]
+    
+    for T in Temperaturas_50
+        mag,sus = config(T=T,L=L,nterm=5000,n=135000)
+        push!(magnetizacion,mag)
+        push!(susceptibility,sus)
+    end
+    return magnetizacion,susceptibility
+end
+
+mag_50, sus_50 = sus_mag(L=50)
+
+#Para calcular las distintas configuraciones de Wolff o mejor dicho, los distintos r0 o semillas
+
+using JLD
+using LatticeModels
+using BioStatPhys
+using DelimitedFiles
+
+Tc = Ising_SQ_critical_temperature
+T = 1.1891073014755633*Tc
+function distintas_config_wolff(; L, n, ndata)
+    IS = Ising(SQLattice_periodic, L, L, ordered=true)
+    conf = load("/home/cmolina/Documentos/Prueba/L=50/Prueba/SQconfig_L$(L)_Tc_ndata$(ndata).jld")
+    IS.σ = conf["IS.σ"]
+    set_temperature!(IS, T)
+    set_energy_mag!(IS)
+    
+    # Ruta base donde se guardarán los archivos
+    ruta_base = "/home/cmolina/Documentos/Prueba/L=50/Prueba/SQconfig_L$(L)_pasos"
+    #file_base = "/home/cmolina/Documentos/Prueba/L=20/Prueba/SQconfig_L$(L)_pasos"
+    
+    # Para guardar las distintas configuraciones cada 1000 pasos
+    for i in 0:1000:n
+        Wolff!(IS, steps=1000, save_interval=1)
+        pasos = ndata + i  # Calcula el número de pasos actual
+        ruta_txt = string(ruta_base, pasos, ".txt")  # Construye el nombre del archivo de texto
+        #ruta_jld = string(file_base, pasos, ".jld")  # Construye el nombre del archivo JLD
+        
+        # Guardar en archivo de texto
+        writedlm(ruta_txt, IS.σ)
+        
+        # Guardar en archivo JLD
+        #@save ruta_jld IS.σ
+    end
+end
+#Correr 10000 con wolff y despues si guardar cada mil pasos
+
+
+using JLD
+using LatticeModels
+using BioStatPhys
+using DelimitedFiles
+using Plots 
+
+
+function prueba_corr_rvs_C(;L,nlong,mlen)
+    IS = Ising(SQLattice_periodic,L,L)
+    conf = load("/Users/christian/SQconf_Tc_L$(L).jld","IS.σ")
+    IS.σ = conf
+    #matriz=zeros((L^2),longitud)
+    set_energy_mag!(IS)
+    set_temperature!(IS,Ising_SQ_critical_temperature)
+    epsilon=zeros(Float64,nlong)
+    fail = 0
+    
+    i = 1
+    pos = zeros(L^2, 2)
+    for x = 1:L, y = 1:L
+        pos[i, 1] = x
+        pos[i, 2] = y
+        i += 1
+    end
+     binning = distance_binning(pos, 1.0, rmin=0.0)
+    
+    for i ∈ eachindex(epsilon)
+        try
+            _,M = Wolff!(IS,steps=mlen,save_interval=1)
+            M = transpose(M)
+            s=reshape(IS.σ,L^2)              
+            r,C = space_correlation(binning, reshape(IS.σ,L^2), connected=true,normalized=true)
+            epsilon[i] = correlation_length_r0(r,C)
+    catch
+            fail += 1
+        end
+    end
+    
+    if fail>0 @warn "Failed $(fail)" 
+    end
+    writedlm("long_$(L)_$(nlong)_$(mlen).txt",epsilon)
+    return epsilon
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ##1) Como tenìa problema con los transitorios, entonces con este programa agarraba una configuracion y la dejaba evolucionar con wolff, demasiado, como n =70000 o 90000
 
 using JLD
