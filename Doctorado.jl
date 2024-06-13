@@ -1,4 +1,4 @@
-##PROGRAMA PARA CALCULAR LAS MAGNETIZACIONES Y SUSCEPTIBILIDADES, QUE USABA LUEGO PARA VER EL SCALING
+##1)PROGRAMA PARA CALCULAR LAS MAGNETIZACIONES Y SUSCEPTIBILIDADES, QUE USABA LUEGO PARA VER EL SCALING Y PODER DONDE CAÍA EL MÁXIMO Y USAR ESA TEMPERATURA, DONDE USABA EL ALGORITMO DE METRÓPOLIS PORQUE CON WOLFF NO SE OBSERVAN PÍCOS EN LA SUSCEPTIBILDIAD
 
 using JLD
 using LatticeModels
@@ -12,27 +12,28 @@ Tc=Ising_SQ_critical_temperature
 function config(;T,L,nterm,n)
     IS = Ising(SQLattice_periodic, L, L, ordered=true)
 
-    set_temperature!(IS, T)
+    set_temperature!(IS, T)  #poner el T adecuado, no siempre Tc
     Metropolis!(IS, steps=nterm)
-    e,m = Metropolis!(IS,steps=n,save_interval=10)
-    #Guardar la configuración en un archivo de texto con formato personalizado
-    ruta = "/home/cmolina/Documentos/Prueba/L=$(L)/Prueba/SQconfig_L$(L)_Temp$(T)_ndata$(n).txt"
-    file = "/home/cmolina/Documentos/Prueba/L=$(L)/Prueba/SQconfig_L$(L)_Temp$(T)_ndata$(n).jld"
-    @save file IS.σ
-    writedlm(ruta, IS.σ)
+    e,m = Metropolis!(IS,steps=n,save_interval=10)  #calcula la energía y magnetización
+    
+    #Guardar la configuración en un archivo de texto con formato personalizado, txt y jld
+    #ruta = "/home/cmolina/Documentos/Prueba/L=$(L)/Prueba/SQconfig_L$(L)_Temp$(T)_ndata$(n).txt"  
+    #file = "/home/cmolina/Documentos/Prueba/L=$(L)/Prueba/SQconfig_L$(L)_Temp$(T)_ndata$(n).jld"
+    
+    #@save file IS.σ
+    #writedlm(ruta, IS.σ)
 
-    mag = Statistics.mean(abs.(m))    
+    mag = Statistics.mean(abs.(m))   
     sus = L * L * (Statistics.var(abs.(m)) / T)
     return mag,sus
 
 end
 
-
-##CONFIGURACIONES YA TERMALIZADAS MEDIANTE WOLFF QUE USARÉ LUEGO PARA HACER METRÓPOLIS
+##2)CONFIGURACIONES YA TERMALIZADAS MEDIANTE WOLFF QUE USARÉ LUEGO PARA HACER METRÓPOLIS
 using Statistics
 
 Tc=Ising_SQ_critical_temperature
-Temperaturas_50 = collect(0.95:0.005:1.05)*Tc
+Temperaturas_50 = collect(1.0:0.01:1.4)*Tc    #el rango que uso cercano a T crítico para ver la susceptibilidad y magnetización vs T y poder ver que está termalizado (cumple el scaling)
 
 function sus_mag(;L)
     magnetizacion = Float64[]
@@ -48,132 +49,26 @@ end
 
 mag_50, sus_50 = sus_mag(L=50)
 
-#Para calcular las distintas configuraciones de Wolff o mejor dicho, los distintos r0 o semillas
+
+##3)A LA CONFIGURACIÓN OBTENIDA DEL PROGRAMA ANTERIOR PARA LA TEMPERATURA CORRESPONDIENTE Y YA TERMALIZADA, CORRÍA 100000 PASOS MÁS CON LA CONFIGURACIÓN DE WOLFF
 
 using JLD
+using DelimitedFiles
 using LatticeModels
 using BioStatPhys
-using DelimitedFiles
 
-Tc = Ising_SQ_critical_temperature
-T = 1.1891073014755633*Tc
-function distintas_config_wolff(; L, n, ndata)
+T = 1.1447916444863286*Tc
+
+function config_wolff(;L,ndata,n)
     IS = Ising(SQLattice_periodic, L, L, ordered=true)
-    conf = load("/home/cmolina/Documentos/Prueba/L=50/Prueba/SQconfig_L$(L)_Tc_ndata$(ndata).jld")
+    conf = load("/home/cmolina/Documentos/Prueba/L=$(L)/Prueba/SQconfig_L$(L)_Tc_ndata$(ndata).jld")
     IS.σ = conf["IS.σ"]
     set_temperature!(IS, T)
     set_energy_mag!(IS)
     
-    # Ruta base donde se guardarán los archivos
-    ruta_base = "/home/cmolina/Documentos/Prueba/L=50/Prueba/SQconfig_L$(L)_pasos"
-    #file_base = "/home/cmolina/Documentos/Prueba/L=20/Prueba/SQconfig_L$(L)_pasos"
-    
-    # Para guardar las distintas configuraciones cada 1000 pasos
-    for i in 0:1000:n
-        Wolff!(IS, steps=1000, save_interval=1)
-        pasos = ndata + i  # Calcula el número de pasos actual
-        ruta_txt = string(ruta_base, pasos, ".txt")  # Construye el nombre del archivo de texto
-        #ruta_jld = string(file_base, pasos, ".jld")  # Construye el nombre del archivo JLD
-        
-        # Guardar en archivo de texto
-        writedlm(ruta_txt, IS.σ)
-        
-        # Guardar en archivo JLD
-        #@save ruta_jld IS.σ
-    end
-end
-#Correr 10000 con wolff y despues si guardar cada mil pasos
-
-
-using JLD
-using LatticeModels
-using BioStatPhys
-using DelimitedFiles
-using Plots 
-
-
-function prueba_corr_rvs_C(;L,nlong,mlen)
-    IS = Ising(SQLattice_periodic,L,L)
-    conf = load("/Users/christian/SQconf_Tc_L$(L).jld","IS.σ")
-    IS.σ = conf
-    #matriz=zeros((L^2),longitud)
-    set_energy_mag!(IS)
-    set_temperature!(IS,Ising_SQ_critical_temperature)
-    epsilon=zeros(Float64,nlong)
-    fail = 0
-    
-    i = 1
-    pos = zeros(L^2, 2)
-    for x = 1:L, y = 1:L
-        pos[i, 1] = x
-        pos[i, 2] = y
-        i += 1
-    end
-     binning = distance_binning(pos, 1.0, rmin=0.0)
-    
-    for i ∈ eachindex(epsilon)
-        try
-            _,M = Wolff!(IS,steps=mlen,save_interval=1)
-            M = transpose(M)
-            s=reshape(IS.σ,L^2)              
-            r,C = space_correlation(binning, reshape(IS.σ,L^2), connected=true,normalized=true)
-            epsilon[i] = correlation_length_r0(r,C)
-    catch
-            fail += 1
-        end
-    end
-    
-    if fail>0 @warn "Failed $(fail)" 
-    end
-    writedlm("long_$(L)_$(nlong)_$(mlen).txt",epsilon)
-    return epsilon
-end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-##1) Como tenìa problema con los transitorios, entonces con este programa agarraba una configuracion y la dejaba evolucionar con wolff, demasiado, como n =70000 o 90000
-
-using JLD
-using DelimitedFiles
-using LatticeModels
-using BioStatPhys
-
-Tc = Ising_SQ_critical_temperature
-
-function config_wolff(;L,ndata,n)
-    IS = Ising(SQLattice_periodic, L, L, ordered=true)
-    conf = load("/media/cmolina/Datos/Iflysib/Julia/L=20/SQconfig_L$(L)_n$(ndata).jld")
-    IS.σ = conf["IS.σ"]
-    set_temperature!(IS, Tc)
-    set_energy_mag!(IS)
-    
     #Rutas donde voy a guardar en formato jld y txt
-    ruta = "/media/cmolina/Datos/Iflysib/Julia/L=$(L)/SQconfig_L$(L)_n$(n+ndata).txt"
-    file="/media/cmolina/Datos/Iflysib/Julia/L=$(L)/SQconfig_L$(L)_n$(n+ndata).jld"
+    ruta = "/home/cmolina/Documentos/Prueba/L=$(L)/Prueba/SQconfig_L$(L)_ndata$(n+ndata).txt"
+    file="/home/cmolina/Documentos/Prueba/L=$(L)/Prueba/SQconfig_L$(L)_ndata$(n+ndata).jld"
     
     Wolff!(IS, steps=n, save_interval=1)
     
@@ -183,12 +78,7 @@ function config_wolff(;L,ndata,n)
     writedlm(ruta, IS.σ)    
 end
 
-
-
-
-##2) A la configuracion que obtengo, lo que hacía era evolucionar el sistema y cada mil pasos obtenía una nueva configuracion, es decir un nuevo r_0 que serían el total de semillas que tendría
-
-
+##4) AHORA LO QUE HACÍA ERA, A PARTIR DE LA CONFIGURACIÓN DE WOLFF OBTENIDA EN EL PROGRAMA ANTERIOR, EVOLUCIONABA CON EL ALGORITMO DE WOLFF Y GUARDABA LA CONFIGURACIÓN CADA 1000 PASOS, PARA QUE SEAN CONFIGURACIONES TOTALMENTE DESCORRELACIONADAS. 
 
 using JLD
 using LatticeModels
@@ -200,31 +90,26 @@ Tc = Ising_SQ_critical_temperature
 
 function distintas_config_wolff(;L,n,ndata)
     IS = Ising(SQLattice_periodic, L, L, ordered=true)
-    conf = load("/media/cmolina/Datos/Iflysib/Julia/L=20/SQconfig_L$(L)_n$(ndata).jld")
+    conf = load("/home/cmolina/Documentos/Prueba/L=100/Prueba/SQconfig_L$(L)_ndata$(ndata).jld")
     IS.σ = conf["IS.σ"]
-    set_temperature!(IS, Tc)
+    set_temperature!(IS, T)  #poner la correspondiente temperatura
     set_energy_mag!(IS)
 
     # Ruta base donde se guardarán los archivos
-    ruta_base = "/media/cmolina/Datos/Iflysib/Julia/L=20/SQconfig_L$(L)_pasos"
+    ruta_base = "/home/cmolina/Documentos/Prueba/L=100/Prueba/SQconfig_L$(L)_pasos"
 
     # Para guardar las distintas configuraciones cada 1000 pasos
     for i in 0:1000:n
         Wolff!(IS, steps=1000, save_interval=1)
         pasos = ndata + i  # Calcula el número de pasos actual
-        ruta = string(ruta_base, pasos, ".txt")  # Construye el nombre del arch>
+        ruta = string(ruta_base, pasos, ".txt")  # Construye el nombre del archivo
         writedlm(ruta, IS.σ)
     end
 end
 
+##5) EL PASO 5 SERÍA CORRER EL PROGRAMA DE LETI, CON EL CUAL A PARTIR DEL ALGORITMO DE METROPOLIS, IBA OBTENIENDO PARA CADA  CONFIGURACIÓN DE WOLFF (ES DECIR, MI R_0) UNA DISTRIBUCION DE TAUS.
 
-
-
-#3) El paso tres sería, ya habiendo obtenido todas las semillas anteriores, correr el programa de Leti para obtener por cada semilla, la cantidad de metròpolis distintas que me gustarìa obtener
-
-
-
-#4) Acá podía obtener la correlación de cada semilla, es decir, leía la magnetización de cada semilla y cada metròpolis y obtenía un vector donde cada fila se correspondía a una correlación distinta.
+##6) ESTE PROGRAMA ES PARA CALCULAR LAS CORRELACIONES TEMPORALES Y SU RESPECTIVOS TIEMPO DE RELAJACIÓN
 
 using Printf
 using JLD
@@ -232,88 +117,58 @@ using DelimitedFiles
 using LatticeModels
 using BioStatPhys
 
-ruta_base = "/media/cmolina/Datos/Iflysib/Julia/L=200/"
-#ruta_base = "/media/cmolina/Datos/"
+ruta_base = "/home/cmolina/Documentos/Prueba/L=20/Prueba/Muchas metropolis/"
 
-num_archivos = 50
+num_archivos = 30  #Cambiar seǵun la cantidad de metrópolis que haya corrido
 
-num_semillas = 3 # Cambiar según la cantidad de semillas que tengas
+num_semillas = 25 # Cambiar según la cantidad de semillas que tengas
 
 # Crear un vector de vectores para almacenar las correlaciones de todas las semillas
 correlaciones_totales = Vector{Vector{Float64}}[]
 
+# Crear un vector de vectores para almacenar los tiempos de relajación de todas las semillas
+tiempos_totales_20 = Vector{Float64}[]
+
 for semilla in 1:num_semillas
     corr = Vector{Float64}[]  # Reiniciar el vector de correlaciones para cada semilla
+    tiempos_semilla = Float64[]  # Reiniciar el vector de tiempos de relajación para cada semilla 
     
     for archivo in 1:num_archivos
         # Construir la ruta completa del archivo
-        ruta_completa = joinpath(ruta_base, "SQ_L0200_seed$semilla", "Mag-SQconf_L0200_seed$semilla"* "_$(@sprintf("%04d", archivo))")
-        data = readdlm(ruta_completa, header=false, skipstart=4)
+        ruta_completa = joinpath(ruta_base, "SQ_L0020_seed$semilla", "Mag-SQconf_L0020_seed$semilla"* "_$(@sprintf("%04d", archivo))")  #acá construyo el nombre completo
+        data = readdlm(ruta_completa, header=false, skipstart=4)  #solo me interesa la a partir de la fila 4, por eso el skipstart=4
 
-        M = data[50000:end,2]
+        M = data[:,2] #solo me interesa la magnetización, por eso elijo esta columna 2
         C = time_correlation(M, connected=true, normalized=true) # Promediando sobre t0
+        tiempo_relajacion = correlation_time_spectral(C, 1)  # Calcular el tiempo de relajación
+        push!(tiempos_semilla, tiempo_relajacion)
         push!(corr, C)
     end
-    
-    push!(correlaciones_totales, corr)
+    push!(tiempos_totales_20, tiempos_semilla)  # Agregar los tiempos de relajación de la semilla al vector total
+    push!(correlaciones_totales, corr)   # Agregar la correlación total de la semilla al vector total
 end
 
 # Alternativamente, si prefieres concatenar los vectores en lugar de transponer las matrices:
-correlaciones_concatenadas_200 = vcat(correlaciones_totales...)
+correlaciones_concatenadas_20 = vcat(correlaciones_totales...)
 
 # Escribir los datos concatenados en el archivo de texto
-archivo_salida_concatenado = "/media/cmolina/Datos/Iflysib/Julia/L=200/correlaciones_200_concatenado.txt"
-#archivo_salida_concatenado = "/media/cmolina/Datos/correlaciones_20_concatenado.txt"
+archivo_salida_concatenado = "/home/cmolina/Documentos/Prueba/L=20/Prueba/Muchas metropolis/correlaciones_20_concatenado.txt"
 
-writedlm(archivo_salida_concatenado, correlaciones_concatenadas_200, ' ')
-
-
-
-#5) Con este programa hacía casi lo miso que antes pero en realidad lo usaba solo para calcular los taus, es decir,, los tiempo de relajaciòn promediando sobre t0
-
-using Printf
-using JLD
-using DelimitedFiles
-using LatticeModels
-using BioStatPhys
-
-ruta_base = "/media/cmolina/Datos/Iflysib/Julia/L=200/"
-#ruta_base = "/media/cmolina/Datos/"
-num_archivos = 50
-num_semillas = 3 # Cambiar según la cantidad de semillas que tengas
-
-# Crear un vector de vectores para almacenar los tiempos de relajación de todas las semillas
-tiempos_totales_200 = Vector{Float64}[]
-
-for semilla in 1:num_semillas
-    tiempos_semilla = Float64[]  # Reiniciar el vector de tiempos de relajación para cada semilla
-    
-    for archivo in 1:num_archivos
-        # Construir la ruta completa del archivo
-        ruta_completa = joinpath(ruta_base, "SQ_L0200_seed$semilla", "Mag-SQconf_L0200_seed$semilla"* "_$(@sprintf("%04d", archivo))")
-        data = readdlm(ruta_completa, header=false, skipstart=4)
-
-        M = data[50000:end,2]
-        C = time_correlation(M, connected=true, normalized=true) # Calcular la correlación
-        tiempo_relajacion = correlation_time_spectral(C, 1)  # Calcular el tiempo de relajación
-        push!(tiempos_semilla, tiempo_relajacion)
-    end
-    
-    push!(tiempos_totales_200, tiempos_semilla)  # Agregar los tiempos de relajación de la semilla al vector total
-end 
+writedlm(archivo_salida_concatenado, correlaciones_concatenadas_20, ' ')
+writedlm("/home/cmolina/Documentos/Prueba/L=20/Prueba/Muchas metropolis/tiempos_20.txt",tiempos_totales_20)  #guardo los tiempos de relajación
 
 
-#6)##Codigo para calcular el promedio de las correlaciones, sin usar el readdlm y preservar la memoria
+##7) Codigo para calcular el promedio de las correlaciones, sin usar el readdlm y poder así preservar la memoria
 
 using Statistics
 
 # Definir el nombre del archivo
-archivo = "/media/cmolina/Datos/Iflysib/Julia/L=20/correlaciones_20_concatenado.txt"
+archivo = "/home/cmolina/Documentos/Prueba/L=100/Prueba/correlaciones_100_concatenado.txt"
 
 # Definir una función para calcular el promedio por columna
 function calcular_promedio_columnas(archivo)
     # Crear un vector para almacenar la suma de cada columna
-    suma_columnas = zeros(Float64, 499000)
+    suma_columnas = zeros(Float64, 1500000)   #acá tengo que tener la longitud de los vectores, por eso con el programa de abajo calculo la longitud del primer vector
     
     # Contador para mantener el número de líneas
     cantidad_filas = 0
@@ -326,7 +181,7 @@ function calcular_promedio_columnas(archivo)
             cantidad_filas += 1
             
             # Dividir la línea en elementos
-            elementos = parse.(Float64, split(linea))[1:499000]
+            elementos = parse.(Float64, split(linea))[1:1500000]
             
             # Sumar cada elemento a la suma correspondiente de la columna
             for (indice, valor) in enumerate(elementos)
@@ -341,35 +196,10 @@ function calcular_promedio_columnas(archivo)
     return promedio_columnas
 end
 
-
-
-#Y con esto guardaba los taus
-using DelimitedFiles
-
-# Ruta para guardar el archivo
-ruta_directorio = "/media/cmolina/Datos/"
-ruta_guardado = joinpath(ruta_directorio, "promedio_columnas_200.txt")
-
-# Crear el directorio si no existe
-if !isdir(ruta_directorio)
-    mkdir(ruta_directorio)
-end
-
-# Guardar los datos en el archivo de texto
-writedlm(ruta_guardado, promedio_columnas_200, ' ')
-
-
-# Con esto calculaba la cantidad de vectores que tenía la primera fila para usarlo arriba
-promedio_columnas_20 = calcular_promedio_columnas(archivo)
-
-
-
-
-
-##Para calcular cuantos elementos tienen los vectores
+##7.a)Para calcular cuantos elementos tienen los vectores
 
 # Definir el nombre del archivo
-archivo = "/media/cmolina/Datos/Iflysib/Julia/L=20/correlaciones_20_concatenado.txt"
+archivo = "/home/cmolina/Documentos/Prueba/L=100/Prueba/correlaciones_100_concatenado.txt"
 
 # Abrir el archivo
 open(archivo) do file
@@ -383,78 +213,23 @@ open(archivo) do file
     println("La longitud del primer vector es: $longitud_primer_vector")
 end
 
+##7.b)Calculo el promedio de las correlaciones y usando el programa 7 y despues lo guardo para realizar el gráfico de las correlaciones medias temporales
 
-
-## Programa para cambiar nombres
-
-# Función para cambiar el nombre de los archivos en un directorio
-function cambiar_nombres(directorio::String, prefijo_original::String, prefijo_nuevo::String)
-    # Obtener lista de archivos en el directorio
-    archivos = readdir("/media/cmolina/Datos/Iflysib/SQ_L0100_seed4/")
-    
-    # Iterar sobre cada archivo
-    for archivo in archivos
-        # Verificar si el archivo comienza con el prefijo original
-        if startswith(archivo, prefijo_original)
-            # Construir el nuevo nombre de archivo reemplazando el prefijo
-            nuevo_nombre = replace(archivo, prefijo_original => prefijo_nuevo)
-            # Renombrar el archivo
-            mv(joinpath(directorio, archivo), joinpath(directorio, nuevo_nombre))
-        end
-    end
-end
-
-# Directorio donde se encuentran los archivos
-directorio = "/media/cmolina/Datos/Iflysib/SQ_L0100_seed4/"
-
-# Prefijo original y nuevo
-prefijo_original = "Mag-SQconf_L0100_seed4"
-prefijo_nuevo = "Mag-SQconf_L0100_seed16"
-
-# Llamar a la función para cambiar los nombres de los archivos
-cambiar_nombres(directorio, prefijo_original, prefijo_nuevo)
-
-
-
-
-
-#Para calcular las correlaciones para todas las semillas y una sola metropoli y guardarlo
-
-using Printf
-using JLD
 using DelimitedFiles
-using LatticeModels
+
+promedio_columnas_100 = calcular_promedio_columnas(archivo)
+
+writedlm("/home/cmolina/Documentos/Prueba/L=100/Prueba/promedio.txt",promedio_columnas_100)
+
+##8)Calculo las distribuciones de los tiempos
 using BioStatPhys
 
-ruta_base = "/home/cmolina/Documentos/Christian/L=20"
-num_archivos = 1
-num_semillas = 31 # Cambiar según la cantidad de semillas que tengas
-
-# Crear un vector de vectores para almacenar las correlaciones de todas las semillas
-correlaciones_totales_20 = Vector{Vector{Float64}}[]
-tiempos_totales_20 = Vector{Float64}[]
-
-for semilla in 1:num_semillas
-    corr = Vector{Float64}[]  # Reiniciar el vector de correlaciones para cada semilla
-    tiempos_semilla = Float64[] 
-    for archivo in 1:num_archivos
-        # Construir la ruta completa del archivo
-        ruta_completa = joinpath(ruta_base, "SQ_L0020_seed$semilla", "Mag-SQconf_L0020_seed$semilla"* "_$(@sprintf("%04d", archivo))")
-        data = readdlm(ruta_completa, header=false, skipstart=4)
-
-        M = data[:, 2]
-        C = time_correlation(M, connected=true, normalized=true) # Promediando sobre t0
-        tiempo_relajacion = correlation_time_spectral(C, 1)  # Calcular el tiempo de relajación
-        push!(tiempos_semilla, tiempo_relajacion)
-        push!(corr, C)
-    end
-    push!(tiempos_totales_20,tiempos_semilla)
-    push!(correlaciones_totales_20, corr)
+@time function histograma_new(;L, bins)
+    time = readdlm("/home/cmolina/Documentos/Prueba/L=$(L)/Prueba/tiempos_$(L).txt")
+    min,max=extrema(time)
+    his = Histogram(bins, max = max, min = min)
+        for tiempo in time
+            push!(his,tiempo)
+        end
+    return prob(his)
 end
-
-# Alternativamente, si prefieres concatenar los vectores en lugar de transponer las matrices:
-correlaciones_concatenadas_20 = vcat(correlaciones_totales_20...)
-
-writedlm("/home/cmolina/Documentos/Christian/Tiempos/tiempos_totales_20_1metropoli.txt",tiempos_totales_20)
-
-
