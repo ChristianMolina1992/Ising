@@ -57,18 +57,16 @@ using DelimitedFiles
 using LatticeModels
 using BioStatPhys
 
-T = 1.1447916444863286*Tc
-
-function config_wolff(;L,ndata,n)
+function config_wolff(;L,ndata,n,T)
     IS = Ising(SQLattice_periodic, L, L, ordered=true)
-    conf = load("/home/cmolina/Documentos/Prueba/L=$(L)/Prueba/SQconfig_L$(L)_Tc_ndata$(ndata).jld")
+    conf = load("/home/cmolina/Documentos/Nuevo/L=$(L)/SQconfig_L$(L)_Tc_ndata$(ndata).jld")
     IS.σ = conf["IS.σ"]
-    set_temperature!(IS, T)
-    set_energy_mag!(IS)
+    set_temperature!(IS,T)
+    #set_energy_mag!(IS)
     
     #Rutas donde voy a guardar en formato jld y txt
-    ruta = "/home/cmolina/Documentos/Prueba/L=$(L)/Prueba/SQconfig_L$(L)_ndata$(n+ndata).txt"
-    file="/home/cmolina/Documentos/Prueba/L=$(L)/Prueba/SQconfig_L$(L)_ndata$(n+ndata).jld"
+    ruta = "/home/cmolina/Documentos/Nuevo/L=$(L)/Prueba/SQconfig_L$(L)_ndata$(n+ndata).txt"
+    file="/home/cmolina/Documentos/Nuevo/L=$(L)/Prueba/SQconfig_L$(L)_ndata$(n+ndata).jld"
     
     Wolff!(IS, steps=n, save_interval=1)
     
@@ -85,18 +83,15 @@ using LatticeModels
 using DelimitedFiles
 using BioStatPhys
 
-Tc = Ising_SQ_critical_temperature
-
-
-function distintas_config_wolff(;L,n,ndata)
+function distintas_config_wolff(;L,n,ndata,T)
     IS = Ising(SQLattice_periodic, L, L, ordered=true)
-    conf = load("/home/cmolina/Documentos/Prueba/L=100/Prueba/SQconfig_L$(L)_ndata$(ndata).jld")
+    conf = load("/home/cmolina/Documentos/Nuevo/L=$(L)/Prueba/SQconfig_L$(L)_ndata$(ndata).jld")
     IS.σ = conf["IS.σ"]
     set_temperature!(IS, T)  #poner la correspondiente temperatura
-    set_energy_mag!(IS)
+    #set_energy_mag!(IS)
 
     # Ruta base donde se guardarán los archivos
-    ruta_base = "/home/cmolina/Documentos/Prueba/L=100/Prueba/SQconfig_L$(L)_pasos"
+    ruta_base = "/home/cmolina/Documentos/Nuevo/L=$(L)/Prueba/SQconfig_L$(L)_pasos"
 
     # Para guardar las distintas configuraciones cada 1000 pasos
     for i in 0:1000:n
@@ -106,6 +101,7 @@ function distintas_config_wolff(;L,n,ndata)
         writedlm(ruta, IS.σ)
     end
 end
+
 
 ##5) EL PASO 5 SERÍA CORRER EL PROGRAMA DE LETI, CON EL CUAL A PARTIR DEL ALGORITMO DE METROPOLIS, IBA OBTENIENDO PARA CADA  CONFIGURACIÓN DE WOLFF (ES DECIR, MI R_0) UNA DISTRIBUCION DE TAUS.
 
