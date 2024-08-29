@@ -49,6 +49,7 @@ function encontrar_vecinos_por_celdas(x, y, i, R, r_cell, celdas, n_celdas)
     return vecinos
 end
 
+
 ##Lo otro 
 
 using Random, Plots, Statistics
@@ -123,4 +124,5 @@ for step in 1:steps
         display(p)
     end
 end
+
 
