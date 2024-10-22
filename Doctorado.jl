@@ -113,45 +113,45 @@ using DelimitedFiles
 using LatticeModels
 using BioStatPhys
 
-ruta_base = "/home/cmolina/Documentos/Prueba/L=20/Prueba/Muchas metropolis/"
-
-num_archivos = 30  #Cambiar seǵun la cantidad de metrópolis que haya corrido
-
-num_semillas = 25 # Cambiar según la cantidad de semillas que tengas
-
-# Crear un vector de vectores para almacenar las correlaciones de todas las semillas
-correlaciones_totales = Vector{Vector{Float64}}[]
-
-# Crear un vector de vectores para almacenar los tiempos de relajación de todas las semillas
-tiempos_totales_20 = Vector{Float64}[]
-
-for semilla in 1:num_semillas
-    corr = Vector{Float64}[]  # Reiniciar el vector de correlaciones para cada semilla
-    tiempos_semilla = Float64[]  # Reiniciar el vector de tiempos de relajación para cada semilla 
+function procesar_datos(;L::Int, num_archivos::Int, num_semillas::Int)
     
-    for archivo in 1:num_archivos
-        # Construir la ruta completa del archivo
-        ruta_completa = joinpath(ruta_base, "SQ_L0020_seed$semilla", "Mag-SQconf_L0020_seed$semilla"* "_$(@sprintf("%04d", archivo))")  #acá construyo el nombre completo
-        data = readdlm(ruta_completa, header=false, skipstart=4)  #solo me interesa la a partir de la fila 4, por eso el skipstart=4
+    ruta_base = "/home/cmolina/Documentos/Nuevo/L=$(L)/"
+    
+    # Crear un vector de vectores para almacenar las correlaciones de todas las semillas
+    correlaciones_totales = Vector{Vector{Float64}}[]
 
-        M = data[:,2] #solo me interesa la magnetización, por eso elijo esta columna 2
-        C = time_correlation(M, connected=true, normalized=true) # Promediando sobre t0
-        tiempo_relajacion = correlation_time_spectral(C, 1)  # Calcular el tiempo de relajación
-        push!(tiempos_semilla, tiempo_relajacion)
-        push!(corr, C)
+    # Crear un vector de vectores para almacenar los tiempos de relajación de todas las semillas
+    tiempos_totales = Vector{Float64}[]
+
+    for semilla in 1:num_semillas
+        corr = Vector{Float64}[]  # Reiniciar el vector de correlaciones para cada semilla
+        tiempos_semilla = Float64[]  # Reiniciar el vector de tiempos de relajación para cada semilla 
+
+        for archivo in 1:num_archivos
+            # Construir la ruta completa del archivo
+            ruta_completa = joinpath(ruta_base, "SQ_L0050_seed$semilla", "Mag-SQconf_L0050_seed$semilla"* "_$(@sprintf("%04d", archivo))")  #acá construyo el nombre completo
+            data = readdlm(ruta_completa, header=false, skipstart=4)  #solo me interesa la a partir de la fila 4, por eso el skipstart=4
+
+            M = data[60000:end,2] #solo me interesa la magnetización, por eso elijo esta columna 2
+            C = time_correlation(M, connected=true, normalized=true) # Promediando sobre t0
+            tiempo_relajacion = correlation_time_spectral(C, 1)  # Calcular el tiempo de relajación
+            push!(tiempos_semilla, tiempo_relajacion)
+            push!(corr, C)
+        end
+        push!(tiempos_totales, tiempos_semilla)  # Agregar los tiempos de relajación de la semilla al vector total
+        push!(correlaciones_totales, corr)   # Agregar la correlación total de la semilla al vector total
     end
-    push!(tiempos_totales_20, tiempos_semilla)  # Agregar los tiempos de relajación de la semilla al vector total
-    push!(correlaciones_totales, corr)   # Agregar la correlación total de la semilla al vector total
+
+    # Alternativamente, si prefieres concatenar los vectores en lugar de transponer las matrices:
+    correlaciones_concatenadas = vcat(correlaciones_totales...)
+
+    # Escribir los datos concatenados en el archivo de texto
+    archivo_salida_concatenado = joinpath(ruta_base, "correlaciones_$(L)_concatenado.txt")
+    writedlm(archivo_salida_concatenado, correlaciones_concatenadas, ' ')
+    writedlm(joinpath(ruta_base, "tiempos_$(L).txt"), tiempos_totales)  #guardo los tiempos de relajación
 end
 
-# Alternativamente, si prefieres concatenar los vectores en lugar de transponer las matrices:
-correlaciones_concatenadas_20 = vcat(correlaciones_totales...)
-
-# Escribir los datos concatenados en el archivo de texto
-archivo_salida_concatenado = "/home/cmolina/Documentos/Prueba/L=20/Prueba/Muchas metropolis/correlaciones_20_concatenado.txt"
-
-writedlm(archivo_salida_concatenado, correlaciones_concatenadas_20, ' ')
-writedlm("/home/cmolina/Documentos/Prueba/L=20/Prueba/Muchas metropolis/tiempos_20.txt",tiempos_totales_20)  #guardo los tiempos de relajación
+procesar_datos(L=50, num_archivos=20, num_semillas=13)
 
 
 ##7) Codigo para calcular el promedio de las correlaciones, sin usar el readdlm y poder así preservar la memoria
