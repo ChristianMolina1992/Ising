@@ -229,3 +229,36 @@ using BioStatPhys
         end
     return prob(his)
 end
+
+##9)Para poder graficar las distribuciones de tau como el paper
+
+function ejes(;L,bins)
+    x,y = histograma_new(;L,bins)
+    ejey = x.*y
+    ejex = x/(L^2.21)
+    return ejex, ejey
+end
+
+
+# Definir los parámetros
+L = 50
+pasos_inicial = 400000
+pasos_final = 10200000
+pasos_intervalo = 1000
+
+# Ruta donde se guardará el archivo de configuraciones
+output_path = "/home/cmolina/Documentos/configuraciones.txt"
+
+# Abrir el archivo configuraciones.txt para escribir
+open(output_path, "w") do config_file
+    # Crear los archivos de texto y guardar sus nombres en configuraciones.txt
+    for pasos in pasos_inicial:pasos_intervalo:pasos_final
+        filename = "SQconfig_L$(L)_pasos$(pasos).txt"
+        # Escribir el nombre del archivo en configuraciones.txt
+        write(config_file, "$filename\n")
+        # Crear el archivo de configuración (opcionalmente puedes agregar contenido)
+        open(filename, "w") do file
+            write(file, "Este es el archivo $filename\n")
+        end
+    end
+end
