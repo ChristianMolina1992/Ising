@@ -366,3 +366,85 @@ theta_final = generar_snapshots_wolff(
     n_archivos  = 100000,
     pasos_entre = 10000
 )
+
+#Para lo de ahora tem bajas
+
+using Random
+using DelimitedFiles
+
+# ------------------------------
+# Parámetros
+# ------------------------------
+pasos = 10_000_000
+T = 0.65
+
+L = 20
+m, n = L, L
+
+# Configuración inicial aleatoria
+s = 2pi .* rand(m, n)
+
+# ------------------------------
+# Ruta donde guardar
+# ------------------------------
+ruta_guardado = "/home/cmolina/DATA/xytempbajas/L=20/"
+
+archivo_salida = joinpath(
+    ruta_guardado,
+    "XYconfig_xy_L20_ndata10000000.txt"
+)
+
+# ------------------------------
+# Monte Carlo Metropolis
+# ------------------------------
+@time begin
+    for iter in 1:pasos
+        for j in 1:n
+            for i in 1:m
+
+                # Vecinos con condiciones periódicas
+                NN = s[ifelse(i == 1, m, i-1), j]
+                SS = s[ifelse(i == m, 1, i+1), j]
+                WW = s[i, ifelse(j == 1, n, j-1)]
+                EE = s[i, ifelse(j == n, 1, j+1)]
+
+                CT = s[i, j]
+
+                # Energía antes
+                E_before = -cos(CT - NN) -
+                           cos(CT - SS) -
+                           cos(CT - WW) -
+                           cos(CT - EE)
+
+                # Nuevo ángulo propuesto
+                new_angle = 2pi * rand()
+
+                # Energía después
+                E_after = -cos(new_angle - NN) -
+                          cos(new_angle - SS) -
+                          cos(new_angle - WW) -
+                          cos(new_angle - EE)
+
+                # Criterio de Metropolis
+                ΔE = E_after - E_before
+
+                if ΔE < 0 || rand() < exp(-ΔE / T)
+                    s[i, j] = new_angle
+                end
+            end
+        end
+
+        if iter % 100_000 == 0
+            println("Progreso: $(iter ÷ 100_000)%")
+        end
+    end
+end
+
+# ------------------------------
+# Guardar configuración final
+# ------------------------------
+mkpath(ruta_guardado)
+writedlm(archivo_salida, s)
+
+println("Configuración guardada en:")
+println(archivo_salida)
